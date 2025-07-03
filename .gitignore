@@ -9,3 +9,6 @@ dist-ssr
 .cache
 server/dist
 public/dist
+
+/apps/vibe-check-bot/tmp
+/apps/vibe-check-bot/keys
