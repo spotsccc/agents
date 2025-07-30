@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  width: 100dvw;
+  height: 100dvh;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+:root {
+  font-family: 'JetBrains Mono', monospace;
+
+  --v-scale: 1;
+
+  --v-spacing-xs: calc(0.625rem * var(--v-scale));
+  --v-spacing-sm: calc(0.75rem * var(--v-scale));
+  --v-spacing-md: calc(1rem * var(--v-scale));
+  --v-spacing-lg: calc(1.25rem * var(--v-scale));
+  --v-spacing-xl: calc(2rem * var(--v-scale));
+
+  --v-text-size-xs: calc(0.75rem * var(--v-scale));
+  --v-text-size-sm: calc(0.875rem * var(--v-scale));
+  --v-text-size-md: calc(1rem * var(--v-scale));
+  --v-text-size-lg: calc(1.125rem * var(--v-scale));
+  --v-text-size-xl: calc(1.25rem * var(--v-scale));
+
+  --v-border-radius-xs: calc(0.625rem * var(--v-scale));
+}
