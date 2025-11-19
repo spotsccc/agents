@@ -1,1 +1,1 @@
-export { default as Ui } from './ui.vue'
+export { default as VStack } from './ui.vue'

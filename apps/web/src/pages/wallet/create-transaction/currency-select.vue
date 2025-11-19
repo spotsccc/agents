@@ -3,7 +3,7 @@ import {useQuery} from "@tanstack/vue-query";
 import {supabase} from "@/shared/supabase";
 import VSelect from "@/shared/components/ui/select/v-select.vue";
 import {computed} from "vue";
-import {useTransactionForm} from "@/pages/wallet/use-transaction-form.ts";
+import {useTransactionForm} from "@/pages/wallet/create-transaction/use-transaction-form.ts";
 
 const {form} = useTransactionForm()!
 

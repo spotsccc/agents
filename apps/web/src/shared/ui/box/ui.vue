@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import {type BaseComponentProps, mapBaseComponentPropsToStyles} from "@/shared/ui/types";
-import {computed} from "vue";
+import {computed, useTemplateRef} from "vue";
 
 const props = defineProps<BaseComponentProps>()
+const rootRef = useTemplateRef<HTMLElement>('root')
 
 const style = computed(() => {
   return ({
     ...mapBaseComponentPropsToStyles(props),
   })
 })
+
+defineExpose({
+  el: rootRef,
+});
 
 </script>
 
@@ -19,7 +24,7 @@ export default {
 </script>
 
 <template>
-  <component :is="$attrs.is ?? 'div'" :style="style" :class="$style.root">
+  <component ref="root" :is="$attrs.is ?? 'div'" :style="style" :class="$style.root">
     <slot/>
   </component>
 </template>

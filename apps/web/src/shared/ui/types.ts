@@ -129,6 +129,7 @@ export function mapProperty(prop?: StyleProp<(string & {}) | number>) {
   return prop
 }
 
+export const GAP_VAR = '--v-gap';
 export const SPACING_VAR = '--v-spacing';
 export const TEXT_SIZE_VAR = '--v-text-size' as const;
 

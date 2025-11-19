@@ -1,11 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/vue3-vite';
-import {commonArgTypes} from "@/shared/ui/common-arg-types.ts";
+import type { Meta, StoryObj } from "@storybook/vue3-vite";
+import { commonArgTypes } from "@/shared/ui/common-arg-types.ts";
 
 import VStack from "./ui.vue";
 
 const meta: Meta = {
   component: VStack,
-  title: 'VStack',
+  title: "VStack",
   tags: ["autodocs"],
   parameters: {
     docs: {
@@ -56,22 +56,22 @@ VStack следует использовать для вертикального
   argTypes: {
     ...commonArgTypes,
     gap: {
-      control: { type: 'select' },
-      options: ['xs', 'sm', 'md', 'lg', 'xl'],
-      description: 'Размер отступа между элементами',
+      control: { type: "select" },
+      options: ["xs", "sm", "md", "lg", "xl"],
+      description: "Размер отступа между элементами",
     },
     justify: {
-      control: { type: 'select' },
-      options: ['flex-start', 'flex-end', 'space-between', 'space-around', 'center'],
-      description: 'Выравнивание по вертикали (основное направление)',
+      control: { type: "select" },
+      options: ["flex-start", "flex-end", "space-between", "space-around", "center"],
+      description: "Выравнивание по вертикали (основное направление)",
     },
     align: {
-      control: { type: 'select' },
-      options: ['scratch', 'center', 'flex-start', 'flex-end'],
-      description: 'Выравнивание по горизонтали (поперечное направление)',
+      control: { type: "select" },
+      options: ["scratch", "center", "flex-start", "flex-end"],
+      description: "Выравнивание по горизонтали (поперечное направление)",
     },
   },
-}
+};
 
 export default meta;
 
@@ -100,24 +100,36 @@ export const Default = createTemplate(`
   <div style="background: #f0f0f0; padding: 8px; margin: 4px;">Item 3</div>
 `);
 
-export const WithGap = createTemplate(`
+export const WithGap = createTemplate(
+  `
   <div style="background: #f0f0f0; padding: 8px;">Item 1</div>
   <div style="background: #f0f0f0; padding: 8px;">Item 2</div>
   <div style="background: #f0f0f0; padding: 8px;">Item 3</div>
-`, { gap: 'md' });
+`,
+  { gap: "md" },
+);
 
-export const SpaceBetween = createTemplate(`
+export const SpaceBetween = createTemplate(
+  `
   <div style="background: #f0f0f0; padding: 8px;">Top</div>
   <div style="background: #f0f0f0; padding: 8px;">Middle</div>
   <div style="background: #f0f0f0; padding: 8px;">Bottom</div>
-`, { justify: 'space-between', h: '200px' });
+`,
+  { justify: "space-between", h: "200px" },
+);
 
-export const CenteredHorizontally = createTemplate(`
+export const CenteredHorizontally = createTemplate(
+  `
   <div style="background: #f0f0f0; padding: 8px;">Centered</div>
   <div style="background: #f0f0f0; padding: 8px;">Content</div>
-`, { align: 'center', gap: 'sm' });
+`,
+  { align: "center", gap: "sm" },
+);
 
-export const CenteredBoth = createTemplate(`
+export const CenteredBoth = createTemplate(
+  `
   <div style="background: #f0f0f0; padding: 8px;">Fully</div>
   <div style="background: #f0f0f0; padding: 8px;">Centered</div>
-`, { justify: 'center', align: 'center', gap: 'sm', h: '200px' });
+`,
+  { justify: "center", align: "center", gap: "sm", h: "200px" },
+);

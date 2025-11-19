@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import VSelect from "@/shared/components/ui/select/v-select.vue";
-import {useTransactionForm} from "@/pages/wallet/use-transaction-form.ts";
+import {useTransactionForm} from "@/pages/wallet/create-transaction/use-transaction-form.ts";
 import {useQuery} from "@tanstack/vue-query";
 import {supabase} from "@/shared/supabase";
 import {computed} from "vue";
