@@ -4,7 +4,6 @@
     "module": "ESNext",
     "lib": ["ES2022"],
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -16,7 +15,6 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
