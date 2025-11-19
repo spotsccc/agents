@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "publish:jsr": "deno publish",
+    "publish:jsr": "deno publish --sloppy-imports --allow-slow-types",
     "test": "echo 'Add test script here'",
     "lint": "echo 'Add lint script here'"
   },
