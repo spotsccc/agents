@@ -1,0 +1,17 @@
+{
+  "name": "@qqq/agent-function-contracts",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./promt-ab": "./src/promt-ab.ts"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "imports": {
+    "zod": "npm:zod@^4.1.5"
+  }
+}
+
