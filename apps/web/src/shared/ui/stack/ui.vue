@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import {computed, useTemplateRef} from 'vue'
 import {
-  type BaseComponentProps,
+  type BaseComponentProps, GAP_VAR,
   mapMayBeSizeProperty,
   SPACING_VAR,
 } from '../types'
 import VBox from "@/shared/ui/box/ui.vue";
+
+const rootRef = useTemplateRef('root')
+
+
+defineExpose({
+  el: computed(() => rootRef.value?.el),
+});
 
 const props = defineProps<
   {
@@ -19,13 +26,13 @@ const styles = computed(() => {
   return {
     justifyContent: props.justify ?? 'flex-start',
     alignItems: props.align ?? 'scratch',
-    gap: mapMayBeSizeProperty(props.gap, SPACING_VAR),
+    gap: mapMayBeSizeProperty(props.gap, GAP_VAR),
   }
 })
 </script>
 
 <template>
-  <VBox v-bind="props" :class="$style.root" :style="styles">
+  <VBox ref="root" v-bind="props" :class="$style.root" :style="styles">
     <slot />
   </VBox>
 </template>

@@ -1,52 +1,44 @@
 <script setup lang="ts">
-import {supabase} from "@/shared/supabase";
-import {ref} from "vue";
 import {z} from "zod";
-import {Ui as VStack} from "@/shared/ui/stack";
-import TextInput from "@/shared/ui/text-input/ui.vue";
-import VButton from "@/shared/ui/button/ui.vue";
+import {VStack} from "@/shared/ui/stack";
+import {VText} from "@/shared/ui/text";
+import {Input} from "@/shared/components/ui/input";
+import {useSignIn} from "@/shared/auth/use-user";
+import {useRouter} from "vue-router";
+import {useForm} from "vee-validate";
+import {toTypedSchema} from '@vee-validate/zod'
+import {Button} from "@/shared/components/ui/button";
 
-const password = ref('');
-const passwordError = ref('');
-const email = ref('');
-const emailError = ref('');
+const router = useRouter();
 
-const rules = {
-  password: z.string()
-    .min(6, 'Password must be at least 8 characters'),
+const scheme = toTypedSchema(z.object({
+  password: z.string().min(6, "Password must be at least 8 characters"),
   email: z.email(),
-}
+}));
 
-async function signIn() {
+const {defineField, handleSubmit, errors, setFieldError} = useForm({
+  validationSchema: scheme,
+  initialValues: {
+    email: '',
+    password: '',
+  },
+})
 
-    const passwordRes = rules.password.safeParse(password.value);
-    if (passwordRes.error) {
-      passwordError.value = passwordRes.error.issues[0].message;
-      return;
-    }
-    const emailRes = rules.email.safeParse(email.value);
-    if (emailRes.error) {
-      emailError.value = emailRes.error.issues[0].message;
-      return;
-    }
 
-    const result = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
-    })
+const signInMutation = useSignIn()
 
-    if (result.error) {
-      switch (result.error.code) {
-        case "invalid_credentials":
-          emailError.value = 'Invalid email or password';
-          return;
-        default:
-          emailError.value = 'Unknown error';
-          return;
-      }
-    }
+const onSubmit = handleSubmit(async (values) => {
+  try {
+    await signInMutation.mutateAsync(values);
+    void router.push('/inbox');
+  } catch (error) {
+    setFieldError('email', 'Invalid email or password')
+  }
+})
 
-}
+const [email] = defineField('email');
+const [password] = defineField('password');
+
 </script>
 
 <script lang="ts">
@@ -57,18 +49,18 @@ export default {
 
 <template>
   <VStack w="100dvw" h="100dvh" justify="center" align="center">
-    <VStack is="form" @submit.prevent="signIn" :w="500">
-      <TextInput :error="emailError" label="Email" placeholder="email@example.com" v-model="email"/>
-      <TextInput label="Password" placeholder="password" type="password" v-model="password"/>
-      <VButton type="submit">
-        Sign in
-      </VButton>
+    <VText> Sign in with email and password</VText>
+    <VStack is="form" @submit.prevent="onSubmit" :w="500">
+      <Input id="email" v-model="email" :error="errors.email" label="Email"
+             placeholder="example@mail.com"/>
+      <Input id="password" type="password" v-model="password" :error="errors.password"
+             label="Password" placeholder="*******"/>
+      <Button type="submit">
+        Submit
+      </Button>
     </VStack>
   </VStack>
 </template>
 
 <style module>
-.root {
-
-}
 </style>

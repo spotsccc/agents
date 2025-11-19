@@ -9,6 +9,8 @@ dist-ssr
 .cache
 server/dist
 public/dist
+.idea
+.vscode
 
 /apps/vibe-check-bot/tmp
 /apps/vibe-check-bot/keys

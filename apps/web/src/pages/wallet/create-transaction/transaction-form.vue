@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {Input} from "@/shared/components/ui/input";
 import {Button} from "@/shared/components/ui/button";
-import CurrencySelect from "@/pages/wallet/currency-select.vue";
-import KindSelect from "@/pages/wallet/kind-select.vue";
-import {useProvideTransactionForm} from "@/pages/wallet/use-transaction-form.ts";
-import ToCurrencySelect from "@/pages/wallet/to-currency-select.vue";
-import ToWallet from "@/pages/wallet/to-wallet.vue";
-import CategorySelect from "@/pages/wallet/category-select.vue";
+import CurrencySelect from "@/pages/wallet/create-transaction/currency-select.vue";
+import KindSelect from "@/pages/wallet/create-transaction/kind-select.vue";
+import {useProvideTransactionForm} from "@/pages/wallet/create-transaction/use-transaction-form.ts";
+import ToCurrencySelect from "@/pages/wallet/create-transaction/to-currency-select.vue";
+import ToWallet from "@/pages/wallet/create-transaction/to-wallet.vue";
+import CategorySelect from "@/pages/wallet/create-transaction/category-select.vue";
 
 const {walletId} = defineProps<{ walletId: string }>()
 

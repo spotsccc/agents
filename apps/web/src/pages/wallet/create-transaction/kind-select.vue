@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {useTransactionForm} from "@/pages/wallet/use-transaction-form.ts";
+import {useTransactionForm} from "@/pages/wallet/create-transaction/use-transaction-form.ts";
 import VSelect from "@/shared/components/ui/select/v-select.vue";
 
 const { form } = useTransactionForm()!

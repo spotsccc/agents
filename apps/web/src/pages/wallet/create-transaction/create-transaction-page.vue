@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import TransactionForm from "@/pages/wallet/create-transaction/transaction-form.vue";
+import {useRoute} from "vue-router";
+const route = useRoute();
 
+const walletId = route.params.walletId as string;
 </script>
 
 <template>
-  $END$
+<TransactionForm :walletId/>
 </template>
 
 <style scoped>

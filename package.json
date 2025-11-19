@@ -1,6 +1,12 @@
 {
   "private": true,
   "scripts": {
+    "supabase:functions-serve": "supabase functions serve --env-file supabase/.env",
+    "supabase:functions-deploy": "supabase functions deploy",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:console": "supabase console",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
@@ -12,5 +18,8 @@
     "turbo": "^2.5.4"
   },
   "packageManager": "pnpm@8.15.6",
-  "name": "with-vite-react"
+  "name": "with-vite-react",
+  "dependencies": {
+    "supabase": "^2.58.5"
+  }
 }
