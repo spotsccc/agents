@@ -19,7 +19,7 @@ export const promtAbRequest = z.object({
     presencePenalty: z.number(),
     frequencyPenalty: z.number(),
   }),
-  userPrompt: z.string(),
+  userPrompts: z.array(z.string()),
 });
 
 export const promtAbResponse = z.object({
