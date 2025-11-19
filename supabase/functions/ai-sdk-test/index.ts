@@ -24,32 +24,50 @@ Deno.serve(async (req) => {
 
   const { data } = requestParseResult;
 
-  const aResponsePromise = generateText({
+  const aTestConfig = {
     model: openai("gpt-4o"),
-    prompt: data.a.systemPrompt,
+    systemPrompt: data.a.systemPrompt,
     temperature: data.a.temperature,
     topP: data.a.topP,
     topK: data.a.topK,
     maxOutputTokens: data.a.maxOutputTokens,
     presencePenalty: data.a.presencePenalty,
     frequencyPenalty: data.a.frequencyPenalty,
-  });
+  };
 
-  const bResponsePromise = generateText({
+  const bTestConfig = {
     model: openai("gpt-4o"),
-    prompt: data.b.systemPrompt,
+    systemPrompt: data.b.systemPrompt,
     temperature: data.b.temperature,
     topP: data.b.topP,
     topK: data.b.topK,
     maxOutputTokens: data.b.maxOutputTokens,
     presencePenalty: data.b.presencePenalty,
     frequencyPenalty: data.b.frequencyPenalty,
-  });
+  };
 
-  const [aResponse, bResponse] = await Promise.all([
-    aResponsePromise,
-    bResponsePromise,
-  ]);
+  const resultPromises = [];
+
+  for (const userPrompt of data.userPrompts) {
+    resultPromises.push(
+      generateText({
+        ...aTestConfig,
+        messages: [
+          { role: "system", content: aTestConfig.systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      })
+    );
+    resultPromises.push(
+      generateText({
+        ...bTestConfig,
+        messages: [
+          { role: "system", content: bTestConfig.systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      })
+    );
+  }
 
   return new Response(JSON.stringify({ request: request.data }), {
     headers: { "Content-Type": "application/json" },
