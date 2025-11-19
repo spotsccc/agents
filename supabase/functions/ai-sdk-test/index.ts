@@ -4,34 +4,54 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { openai } from "npm:@ai-sdk/openai";
-import { ModelMessage, generateText } from "npm:ai";
+import { openai } from "@ai-sdk/openai";
+import { ModelMessage, generateText } from "ai";
+import { promtAbRequest } from "@qqq/agent-function-contracts";
+import { z } from "zod";
 
 console.log("Hello from Functions!");
 
 Deno.serve(async (req) => {
-  console.log("OPENAI_KEY:", Deno.env.get("OPENAI_API_KEY"));
-  const { name } = await req.json();
-  const response = await generateText({
+  const requestParseResult = promtAbRequest.safeParse(await req.json());
+
+  if (!requestParseResult.success) {
+    const { error } = requestParseResult;
+    return new Response(JSON.stringify({ error: z.treeifyError(error) }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const { data } = requestParseResult;
+
+  const aResponsePromise = generateText({
     model: openai("gpt-4o"),
-    prompt: "Hello, how are you?",
+    prompt: data.a.systemPrompt,
+    temperature: data.a.temperature,
+    topP: data.a.topP,
+    topK: data.a.topK,
+    maxOutputTokens: data.a.maxOutputTokens,
+    presencePenalty: data.a.presencePenalty,
+    frequencyPenalty: data.a.frequencyPenalty,
   });
 
-  console.log(response.text);
+  const bResponsePromise = generateText({
+    model: openai("gpt-4o"),
+    prompt: data.b.systemPrompt,
+    temperature: data.b.temperature,
+    topP: data.b.topP,
+    topK: data.b.topK,
+    maxOutputTokens: data.b.maxOutputTokens,
+    presencePenalty: data.b.presencePenalty,
+    frequencyPenalty: data.b.frequencyPenalty,
+  });
 
-  return new Response(JSON.stringify({ message: response.text }), {
+  const [aResponse, bResponse] = await Promise.all([
+    aResponsePromise,
+    bResponsePromise,
+  ]);
+
+  return new Response(JSON.stringify({ request: request.data }), {
     headers: { "Content-Type": "application/json" },
   });
 });
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/ai-sdk-test' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/

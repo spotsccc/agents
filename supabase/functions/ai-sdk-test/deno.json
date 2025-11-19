@@ -1,3 +1,8 @@
 {
-  "imports": {}
+  "imports": {
+    "@qqq/agent-function-contracts": "jsr:@qqq/agent-function-contracts",
+    "@ai-sdk/openai": "npm:@ai-sdk/openai",
+    "ai": "npm:ai",
+    "zod": "npm:zod"
+  }
 }
