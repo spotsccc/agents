@@ -1,0 +1,29 @@
+{
+  "name": "supabase",
+  "version": "0.1.1",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./scheme": {
+      "types": "./scheme/index.ts",
+      "import": "./scheme/index.ts"
+    },
+    "./create-income-transaction": {
+      "types": "./functions/create-income-transaction/contract.ts",
+      "import": "./functions/create-income-transaction/contract.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "scheme": ["./scheme/index.ts"],
+      "create-income-transaction": ["./functions/create-income-transaction/contract.ts"]
+    }
+  },
+  "files": [
+    "dist",
+    "mod.ts",
+    "src"
+  ],
+  "scripts": {
+  }
+}

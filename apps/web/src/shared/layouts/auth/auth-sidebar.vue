@@ -20,13 +20,6 @@ const finance = [
     url: "/dashboard",
   },
 ];
-
-const tasks = [
-  {
-    title: "Inbox",
-    url: "/inbox",
-  },
-]
 </script>
 
 <template>
@@ -40,20 +33,6 @@ const tasks = [
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem v-for="item in finance" :key="item.title">
-              <SidebarMenuButton asChild>
-                <RouterLink :to="item.url">
-                  {{ item.title }}
-                </RouterLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Finance</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem v-for="item in tasks" :key="item.title">
               <SidebarMenuButton asChild>
                 <RouterLink :to="item.url">
                   {{ item.title }}

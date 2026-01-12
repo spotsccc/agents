@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/shared/components/ui/select/index.ts";
-import VText from "@/shared/ui/text/ui.vue";
 import SelectLabel from "@/shared/components/ui/select/SelectLabel.vue";
 
 const {loading = false, disabled = false, placeholder = "Select"} = defineProps<{
@@ -25,7 +24,7 @@ const model = defineModel<string>()
 
 <template>
   <Select v-model="model" :disabled>
-    <VText>{{ label }}</VText>
+    <p>{{ label }}</p>
     <SelectTrigger class="w-full">
       <SelectValue :placeholder/>
     </SelectTrigger>
@@ -44,7 +43,7 @@ const model = defineModel<string>()
     <SelectContent v-else>
       loading
     </SelectContent>
-    <VText>{{ error }}</VText>
+    <p>{{ error }}</p>
   </Select>
 </template>
 

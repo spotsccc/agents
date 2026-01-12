@@ -2,8 +2,6 @@
 import type {HTMLAttributes} from "vue"
 import {useVModel} from "@vueuse/core"
 import {cn} from '@/shared/lib/utils'
-import {VText} from "@/shared/ui/text";
-import {VStack} from "@/shared/ui/stack";
 
 const props = defineProps<{
   id: string;
@@ -32,12 +30,12 @@ const modelValue = useVModel(props, "modelValue", emits, {
 </script>
 
 <template>
-  <VStack :class="[classes?.root, $style.root]" w="100%" gap="xs">
+  <div :class="[classes?.root, $style.root]" class="flex flex-col w-full gap-1">
 
-    <VText size="sm" is="label" :class="[$style.label, classes?.label]" v-if="label" :for="id">
+    <label :class="[$style.label, classes?.label, 'text-sm']" v-if="label" :for="id">
       {{ label }}
-    </VText>
-    <VText size="xs" :class="classes?.description" v-if="description">{{ description }}</VText>
+    </label>
+    <p :class="[classes?.description, 'text-xs']" v-if="description">{{ description }}</p>
     <input
       :id
       v-bind="$attrs"
@@ -50,14 +48,13 @@ const modelValue = useVModel(props, "modelValue", emits, {
       props.class,
     )"
     >
-    <VText
+    <p
       v-if="error"
-      size="xs"
-      :class="classes?.error"
+      :class="[classes?.error, 'text-xs']"
     >
       {{ error }}
-    </VText>
-  </VStack>
+    </p>
+  </div>
 </template>
 
 <style module>

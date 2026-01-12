@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import {z} from "zod";
-import {VStack} from "@/shared/ui/stack";
-import {VText} from "@/shared/ui/text";
 import {Input} from "@/shared/components/ui/input";
 import {useSignIn} from "@/shared/auth/use-user";
 import {useRouter} from "vue-router";
@@ -30,7 +28,7 @@ const signInMutation = useSignIn()
 const onSubmit = handleSubmit(async (values) => {
   try {
     await signInMutation.mutateAsync(values);
-    void router.push('/inbox');
+    void router.push('/wallets');
   } catch (error) {
     setFieldError('email', 'Invalid email or password')
   }
@@ -48,9 +46,9 @@ export default {
 </script>
 
 <template>
-  <VStack w="100dvw" h="100dvh" justify="center" align="center">
-    <VText> Sign in with email and password</VText>
-    <VStack is="form" @submit.prevent="onSubmit" :w="500">
+  <div class="flex flex-col items-center justify-center h-screen">
+    <p> Sign in with email and password</p>
+    <form @submit.prevent="onSubmit" class="flex flex-col gap-4 w-1/2">
       <Input id="email" v-model="email" :error="errors.email" label="Email"
              placeholder="example@mail.com"/>
       <Input id="password" type="password" v-model="password" :error="errors.password"
@@ -58,8 +56,8 @@ export default {
       <Button type="submit">
         Submit
       </Button>
-    </VStack>
-  </VStack>
+    </form>
+  </div>
 </template>
 
 <style module>

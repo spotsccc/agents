@@ -5,24 +5,24 @@ import {useForm} from "vee-validate";
 import {toTypedSchema} from "@vee-validate/zod";
 import {useMutation, useQueryClient} from "@tanstack/vue-query";
 import {useUser} from "@/shared/auth/use-user.ts";
-import type {InsertWallet} from "@/shared/supabase/wallets.ts";
+import type { InsertWallet } from "@/shared/supabase";
 import {Input} from "@/shared/components/ui/input";
 import {Textarea} from "@/shared/components/ui/textarea";
 import {Button} from "@/shared/components/ui/button";
 import {supabase} from "@/shared/supabase";
 
-const user = useUser();
+const {user} = useUser();
 const queryClient = useQueryClient();
 
 const createWalletMutation = useMutation({
   mutationFn: async (wallet: Pick<InsertWallet, 'name' | 'description'>) => {
-    if (!user.data.value) {
+    if (!user.value) {
       throw new Error('User not found');
     }
 
     const res = await supabase.from('wallets').insert({
       ...wallet,
-      user_id: user.data.value.id,
+      user_id: user.value.id,
     })
 
     if (res.error) {
