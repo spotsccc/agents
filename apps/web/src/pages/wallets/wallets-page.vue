@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import VText from "@/shared/ui/text/ui.vue";
 import {useQuery} from '@tanstack/vue-query'
 import {supabase} from "@/shared/supabase";
 import WalletForm from "@/pages/wallets/wallet-form.vue";
@@ -38,10 +37,10 @@ const walletsQuery = useQuery({
 </script>
 
 <template>
-  <VText>Wallets</VText>
+  <p>Wallets</p>
   <div class="flex flex-col">
-    <VText v-if="walletsQuery.isPending.value">Loading</VText>
-    <VText v-else-if="walletsQuery.isError.value">Error</VText>
+    <p v-if="walletsQuery.isPending.value">Loading</p>
+    <p v-else-if="walletsQuery.isError.value">Error</p>
     <div v-else>
       <WalletRow v-for="wallet in walletsQuery.data.value" :key="wallet.id" :wallet="wallet"/>
       <WalletForm/>

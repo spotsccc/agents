@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type {Wallet} from "@/shared/supabase/wallets.ts";
-import VText from "@/shared/ui/text/ui.vue";
+import type { Wallet } from "@/shared/supabase";
 
 defineProps<{
   wallet: Wallet
@@ -11,7 +10,7 @@ defineProps<{
   <div class="flex">
     <RouterLink :to="`/wallets/${wallet.id}`">
       <div class="flex">
-        <VText>{{wallet.name}}</VText>
+        <p>{{wallet.name}}</p>
       </div>
     </RouterLink>
   </div>

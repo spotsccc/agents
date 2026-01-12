@@ -1,13 +1,11 @@
-import {createRouter, createWebHistory} from "vue-router";
-import {InboxPage} from "@/pages/inbox";
-import {supabase} from "@/shared/supabase";
-import {SignUpPage} from "@/pages/auth/sign-up";
-import {SignInPage} from "@/pages/auth/sign-in";
+import { createRouter, createWebHistory } from "vue-router";
+import { SignUpPage } from "@/pages/auth/sign-up";
+import { SignInPage } from "@/pages/auth/sign-in";
 import WalletsPage from "@/pages/wallets/wallets-page.vue";
 import WalletPage from "@/pages/wallet/wallet-page.vue";
 import AuthLayout from "@/shared/layouts/auth/auth-layout.vue";
 import CreateTransactionPage from "@/pages/wallet/create-transaction/create-transaction-page.vue";
-
+import { useUser } from "../../shared/auth/use-user.ts";
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,17 +27,12 @@ export const router = createRouter({
       ],
       meta: {
         public: true,
-      }
+      },
     },
     {
       path: "/",
       component: AuthLayout,
       children: [
-        {
-          path: "/inbox",
-          name: "inbox",
-          component: InboxPage,
-        },
         {
           path: "/wallets",
           name: "wallets",
@@ -58,26 +51,30 @@ export const router = createRouter({
       ],
       meta: {
         requiresAuth: true,
-      }
+      },
     },
     {
-      path: '/:pathMatch(.*)*',
-      redirect: '/inbox',
+      path: "/:pathMatch(.*)*",
+      redirect: "/wallets",
     },
   ],
 });
 
-router.beforeEach(async (to, from, next) => {
-  const {data} = await supabase.auth.getSession()
-  const isLoggedIn = !!data.session
+router.beforeEach(async (to, _from, next) => {
+  const { user, readyPromise } = useUser();
+  await readyPromise;
 
-  if (to.meta.requiresAuth && !isLoggedIn) {
-    return next('/auth/sign-in');
+  if (to.meta.requiresAuth && !user.value) {
+    return next("/auth/sign-in");
   }
 
-  if (to.meta.public && isLoggedIn && to.path === '/auth/sign-up') {
-    return next('/inbox')
+  if (
+    to.meta.public &&
+    user.value &&
+    (to.path === "/auth/sign-up" || to.path === "/auth/sign-in")
+  ) {
+    return next("/wallets");
   }
 
-  return next()
-})
+  return next();
+});

@@ -1,11 +1,13 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { globalIgnores } from "eslint/config";
 import { defineConfigWithVueTs, vueTsConfigs } from "@vue/eslint-config-typescript";
 import pluginVue from "eslint-plugin-vue";
 import pluginVitest from "@vitest/eslint-plugin";
 import pluginPlaywright from "eslint-plugin-playwright";
+
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
 
 // To allow more languages other than `ts` in `.vue` files, uncomment the following lines:
 // import { configureVueProject } from "@vue/eslint-config-typescript";
@@ -16,6 +18,11 @@ export default defineConfigWithVueTs(
   {
     name: "app/files-to-lint",
     files: ["**/*.{ts,mts,tsx,vue}"],
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir,
+      },
+    },
   },
   globalIgnores(["**/dist/**", "**/dist-ssr/**", "**/coverage/**"]),
 

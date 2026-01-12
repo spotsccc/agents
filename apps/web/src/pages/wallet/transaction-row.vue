@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
-import type {Transaction} from "@/shared/supabase/transaction.ts";
-import VText from "@/shared/ui/text/ui.vue";
+import type { Transaction } from "@/shared/supabase";
 
 defineProps<{
   transaction: Transaction
@@ -11,8 +10,8 @@ defineProps<{
 
 <template>
   <div class="border-2">
-    <VText>{{ transaction.kind }}</VText>
-    <VText v-for="entry in transaction.entries" :key="entry.id">{{ entry.amount }}</VText>
+    <p>{{ transaction.type }}</p>
+    <p v-for="entry in transaction.entries" :key="entry.id">{{ entry.amount }}</p>
   </div>
 </template>
 
