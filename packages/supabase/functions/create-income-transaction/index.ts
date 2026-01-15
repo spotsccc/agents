@@ -1,9 +1,18 @@
-import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
-
-const pool = new Pool(Deno.env.get("SUPABASE_DB_URL")!, 1);
+import { Kysely, PostgresDialect, sql } from "kysely";
+import { Pool } from "pg";
+import { createClient } from "supabase";
 
 import type { CreateIncomeTransactionRequest } from "./contract.ts";
+import type { KyselyDatabase } from "../../scheme/kysely.ts";
+
+const pool = new Pool({
+  connectionString: Deno.env.get("SUPABASE_DB_URL"),
+  max: 1,
+});
+
+const db = new Kysely<KyselyDatabase>({
+  dialect: new PostgresDialect({ pool }),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,13 +25,12 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  let connection;
-
   try {
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Отсутствует заголовок авторизации" }),
+        JSON.stringify({ error: "Missing authorization header" }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,7 +50,7 @@ Deno.serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (!user || authError) {
-      return new Response(JSON.stringify({ error: "Неавторизован" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -51,188 +59,148 @@ Deno.serve(async (req) => {
     const body: CreateIncomeTransactionRequest = await req.json();
     const { walletId, amount, currency, sourceId, description } = body;
 
-    connection = await pool.connect();
-    await connection.queryArray("BEGIN");
+    // Validation
+    if (amount <= 0) {
+      throw new Error(`Income amount must be positive, got: ${amount}`);
+    }
 
-    try {
-      // ========================================
-      // ИСПОЛЬЗУЕМ SERVICE_ROLE - БЕЗ RLS
-      // ========================================
+    // Execute in transaction
+    const result = await db.transaction().execute(async (trx) => {
+      // Set service role to bypass RLS
+      await sql`SET LOCAL ROLE service_role`.execute(trx);
 
-      // Service role обходит RLS, но мы всё равно проверяем владение вручную
-      await connection.queryArray("SET LOCAL ROLE service_role");
+      // Validate wallet ownership
+      const walletCheck = await trx
+        .selectFrom("wallets")
+        .select("id")
+        .where("id", "=", walletId)
+        .where("user_id", "=", user.id)
+        .where("deleted_at", "is", null)
+        .limit(1)
+        .execute();
 
-      // ========================================
-      // ВАЛИДАЦИЯ - КРИТИЧНО ДЛЯ БЕЗОПАСНОСТИ!
-      // ========================================
-
-      if (amount <= 0) {
-        throw new Error(
-          `Сумма дохода должна быть положительной, получено: ${amount}`
-        );
+      if (walletCheck.length === 0) {
+        throw new Error("Wallet not found or does not belong to user");
       }
 
-      // ВАЖНО: Проверяем что кошелёк принадлежит пользователю
-      // Это наша защита, т.к. RLS отключен
-      const walletCheck = await connection.queryObject(
-        `SELECT 1 
-         FROM wallets 
-         WHERE id = $1 
-           AND user_id = $2
-           AND deleted_at IS NULL`,
-        [walletId, user.id]
-      );
+      // Validate income source ownership
+      const sourceCheck = await trx
+        .selectFrom("income_sources")
+        .select("id")
+        .where("id", "=", sourceId)
+        .where("user_id", "=", user.id)
+        .where("deleted_at", "is", null)
+        .limit(1)
+        .execute();
 
-      if (walletCheck.rows.length === 0) {
-        throw new Error("Кошелёк не найден или не принадлежит пользователю");
+      if (sourceCheck.length === 0) {
+        throw new Error("Income source not found or does not belong to user");
       }
 
-      // ВАЖНО: Проверяем что источник дохода принадлежит пользователю
-      const sourceCheck = await connection.queryObject(
-        `SELECT 1 
-         FROM income_sources 
-         WHERE id = $1 
-           AND user_id = $2
-           AND deleted_at IS NULL`,
-        [sourceId, user.id]
-      );
-
-      if (sourceCheck.rows.length === 0) {
-        throw new Error(
-          "Источник дохода не найден или не принадлежит пользователю"
-        );
-      }
-
-      // ========================================
-      // ПОЛУЧЕНИЕ И БЛОКИРОВКА БАЛАНСА
-      // ========================================
-
-      const balanceResult = await connection.queryObject<{ balance: string }>(
-        `SELECT balance 
-         FROM wallet_balances
-         WHERE wallet_id = $1 
-           AND currency_code = $2
-         FOR UPDATE`,
-        [walletId, currency]
-      );
+      // Get or create wallet balance with lock
+      const balanceResult = await sql<{ balance: number }>`
+        SELECT balance FROM wallet_balances
+        WHERE wallet_id = ${walletId} AND currency_code = ${currency}
+        FOR UPDATE
+      `.execute(trx);
 
       let currentBalance: number;
 
       if (balanceResult.rows.length === 0) {
-        await connection.queryObject(
-          `INSERT INTO wallet_balances (wallet_id, currency_code, balance)
-           VALUES ($1, $2, 0)`,
-          [walletId, currency]
-        );
+        await trx
+          .insertInto("wallet_balances")
+          .values({
+            wallet_id: walletId,
+            currency_code: currency,
+            balance: 0,
+          })
+          .execute();
         currentBalance = 0;
       } else {
-        currentBalance = parseFloat(balanceResult.rows[0].balance);
+        currentBalance = Number(balanceResult.rows[0].balance);
       }
 
-      // ========================================
-      // ВЫЧИСЛЕНИЕ НОВОГО БАЛАНСА
-      // ========================================
-
+      // Calculate new balance
       const newBalance = currentBalance + amount;
 
       if (newBalance > 999999999999999) {
         throw new Error(
-          "Баланс после операции превысит максимально допустимое значение"
+          "Balance after operation would exceed maximum allowed value"
         );
       }
 
-      // ========================================
-      // СОЗДАНИЕ ТРАНЗАКЦИИ
-      // ========================================
-
+      // Create transaction
       const currentDate = new Date().toISOString().split("T")[0];
 
-      const transactionResult = await connection.queryObject<{ id: string }>(
-        `INSERT INTO transactions (
-          user_id,
-          type,
+      const newTransaction = await trx
+        .insertInto("transactions")
+        .values({
+          user_id: user.id,
+          type: "income",
           description,
-          date,
-          created_at
-        )
-        VALUES ($1, $2, $3, $4, NOW())
-        RETURNING id`,
-        [user.id, "income", description, currentDate]
-      );
+          date: currentDate,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
 
-      const transactionId = transactionResult.rows[0].id;
-
-      // ========================================
-      // СОЗДАНИЕ ENTRY
-      // ========================================
-
-      const entryResult = await connection.queryObject<{ id: string }>(
-        `INSERT INTO transaction_entries (
-          transaction_id,
-          wallet_id,
-          currency_code,
+      // Create entry
+      const newEntry = await trx
+        .insertInto("transaction_entries")
+        .values({
+          transaction_id: newTransaction.id,
+          wallet_id: walletId,
+          currency_code: currency,
           amount,
-          balance_after,
-          source_id,
-          created_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        RETURNING id`,
-        [transactionId, walletId, currency, amount, newBalance, sourceId]
-      );
+          balance_after: newBalance,
+          source_id: sourceId,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
 
-      const entryId = entryResult.rows[0].id;
+      // Update balance
+      await trx
+        .updateTable("wallet_balances")
+        .set({
+          balance: newBalance,
+          updated_at: new Date().toISOString(),
+        })
+        .where("wallet_id", "=", walletId)
+        .where("currency_code", "=", currency)
+        .execute();
 
-      // ========================================
-      // ОБНОВЛЕНИЕ БАЛАНСА
-      // ========================================
-
-      await connection.queryObject(
-        `UPDATE wallet_balances
-         SET 
-           balance = $1,
-           updated_at = NOW()
-         WHERE wallet_id = $2 
-           AND currency_code = $3`,
-        [newBalance, walletId, currency]
-      );
-
-      await connection.queryArray("COMMIT");
-
-      return new Response(
-        JSON.stringify({
-          transaction_id: transactionId,
-          entry_id: entryId,
-          previous_balance: currentBalance,
-          new_balance: newBalance,
-          currency: currency,
-          timestamp: new Date().toISOString(),
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    } catch (error) {
-      await connection.queryArray("ROLLBACK");
-      throw error;
-    }
-  } catch (error) {
-    console.error("Ошибка при создании транзакции дохода:", error);
+      return {
+        transactionId: newTransaction.id,
+        entryId: newEntry.id,
+        previousBalance: currentBalance,
+        newBalance,
+      };
+    });
 
     return new Response(
       JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "Внутренняя ошибка сервера",
+        transaction_id: result.transactionId,
+        entry_id: result.entryId,
+        previous_balance: result.previousBalance,
+        new_balance: result.newBalance,
+        currency,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Error creating income transaction:", error);
+
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Internal server error",
       }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } finally {
-    if (connection) {
-      connection.release();
-    }
   }
 });

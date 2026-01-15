@@ -2,47 +2,47 @@
 import {
   type CreateIncomeTransactionRequest,
   CREATE_INCOME_TRANSACTION,
-} from "supabase/create-income-transaction";
-import { Input } from "@/shared/components/ui/input";
-import VSelect from "@/shared/components/ui/select/v-select.vue";
-import { z } from "zod";
-import { useForm } from "vee-validate";
-import { toTypedSchema } from "@vee-validate/zod";
-import { supabase } from "@/shared/supabase";
-import { useMutation, useQuery } from "@tanstack/vue-query";
-import { computed } from "vue";
-import { useUser } from "@/shared/auth/use-user";
-import Button from "@/shared/components/ui/button/Button.vue";
+} from 'supabase/create-income-transaction'
+import { Input } from '@/shared/components/ui/input'
+import VSelect from '@/shared/components/ui/select/v-select.vue'
+import { z } from 'zod'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { supabase } from '@/shared/supabase'
+import { useMutation, useQuery } from '@tanstack/vue-query'
+import { computed } from 'vue'
+import { useUser } from '@/shared/auth/use-user'
+import Button from '@/shared/components/ui/button/Button.vue'
 
-const { walletId } = defineProps<{ walletId: string }>();
+const { walletId } = defineProps<{ walletId: string }>()
 
-const { user } = useUser();
+const { user } = useUser()
 
 const scheme = z.object({
   amount: z.number(),
   currency: z.string(),
   description: z.string(),
-  type: z.enum(["income", "expense", "transfer", "exchange"]),
+  type: z.enum(['income', 'expense', 'transfer', 'exchange']),
   category: z.string().optional(),
-});
+})
 
 const form = useForm({
   validationSchema: toTypedSchema(scheme),
   initialValues: {
     amount: 0,
-    currency: "USD",
-    description: "",
-    type: "expense",
+    currency: 'USD',
+    description: '',
+    type: 'expense',
   },
-});
+})
 
-const [amount] = form.defineField("amount");
-const [type] = form.defineField("type");
+const [amount] = form.defineField('amount')
+const [type] = form.defineField('type')
 // const [to_amount] = form.defineField("to_amount");
 // const [to_wallet] = form.defineField("to_wallet");
-const [currency] = form.defineField("currency");
+const [currency] = form.defineField('currency')
 // const [to_currency] = form.defineField("to_currency");
-const [category] = form.defineField("category");
+const [category] = form.defineField('category')
 
 // const wallets = useQuery({
 //   queryKey: ["wallets"],
@@ -62,17 +62,17 @@ const [category] = form.defineField("category");
 // });
 
 const currenciesQuery = useQuery({
-  queryKey: ["currencies"],
+  queryKey: ['currencies'],
   async queryFn() {
-    const res = await supabase.from("currencies").select();
+    const res = await supabase.from('currencies').select()
 
     if (res.error) {
-      throw res.error;
+      throw res.error
     }
 
-    return res.data;
+    return res.data
   },
-});
+})
 
 const currencyItems = computed(() => {
   return (
@@ -80,51 +80,49 @@ const currencyItems = computed(() => {
       id: currency.code,
       label: currency.code,
     })) ?? []
-  );
-});
+  )
+})
 
 const categories = useQuery({
-  queryKey: ["categories"],
+  queryKey: ['categories'],
   async queryFn() {
-    const res = await supabase.from("categories").select();
+    const res = await supabase.from('categories').select()
 
     if (res.error) {
-      throw res.error;
+      throw res.error
     }
 
-    return res.data;
+    return res.data
   },
-});
+})
 
 const categoryItems = computed(() => {
-  return (
-    categories.data.value?.map((category) => ({ id: category.id, label: category.name })) ?? []
-  );
-});
+  return categories.data.value?.map((category) => ({ id: category.id, label: category.name })) ?? []
+})
 
 const createIncomeTransactionMutation = useMutation({
   mutationFn: async (params: CreateIncomeTransactionRequest) => {
     const { data, error } = await supabase.functions.invoke(CREATE_INCOME_TRANSACTION, {
       body: params,
-    });
+    })
     if (error) {
-      throw error;
+      throw error
     }
-    return data;
+    return data
   },
-});
+})
 
 const onSubmit = form.handleSubmit(async (values) => {
-  debugger;
+  debugger
   await createIncomeTransactionMutation.mutateAsync({
     userId: user.value!.id,
     walletId,
-    sourceId: "84b09fe9-68ae-4d37-8a41-dfc069779d85",
+    sourceId: '84b09fe9-68ae-4d37-8a41-dfc069779d85',
     amount: values.amount,
     currency: values.currency,
     description: values.description,
-  });
-});
+  })
+})
 </script>
 
 <template>

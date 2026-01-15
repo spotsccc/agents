@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -30,7 +30,6 @@ body {
   --v-gap-md: calc(0.5rem * var(--v-scale));
   --v-gap-lg: calc(0.625rem * var(--v-scale));
   --v-gap-xl: calc(0.75rem * var(--v-scale));
-
 
   --v-text-size-xs: calc(0.75rem * var(--v-scale));
   --v-text-size-sm: calc(0.875rem * var(--v-scale));

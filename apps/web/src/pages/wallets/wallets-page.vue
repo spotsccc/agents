@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {useQuery} from '@tanstack/vue-query'
-import {supabase} from "@/shared/supabase";
-import WalletForm from "@/pages/wallets/wallet-form.vue";
-import WalletRow from "@/pages/wallets/wallet-row.vue";
+import { useQuery } from '@tanstack/vue-query'
+import { supabase } from '@/shared/supabase'
+import WalletForm from '@/pages/wallets/wallet-form.vue'
+import WalletRow from '@/pages/wallets/wallet-row.vue'
 
 const walletsQuery = useQuery({
   queryKey: ['wallets'],
@@ -26,14 +26,13 @@ const walletsQuery = useQuery({
         currency_code
       )
       `
-    );
+    )
     if (res.error) {
-      throw res.error;
+      throw res.error
     }
-    return res.data;
-  }
+    return res.data
+  },
 })
-
 </script>
 
 <template>
@@ -42,8 +41,8 @@ const walletsQuery = useQuery({
     <p v-if="walletsQuery.isPending.value">Loading</p>
     <p v-else-if="walletsQuery.isError.value">Error</p>
     <div v-else>
-      <WalletRow v-for="wallet in walletsQuery.data.value" :key="wallet.id" :wallet="wallet"/>
-      <WalletForm/>
+      <WalletRow v-for="wallet in walletsQuery.data.value" :key="wallet.id" :wallet="wallet" />
+      <WalletForm />
     </div>
   </div>
 </template>

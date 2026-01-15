@@ -1,11 +1,9 @@
 <script setup lang="ts">
-
-import type { Transaction } from "@/shared/supabase";
+import type { Transaction } from '@/shared/supabase'
 
 defineProps<{
   transaction: Transaction
 }>()
-
 </script>
 
 <template>
@@ -15,6 +13,4 @@ defineProps<{
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
