@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import { useQuery } from "@tanstack/vue-query";
-import { supabase } from "@/shared/supabase";
-import { ref } from "vue";
-import { Button } from "@/shared/components/ui/button";
+import { useRoute } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
+import { supabase } from '@/shared/supabase'
+import { ref } from 'vue'
+import { Button } from '@/shared/components/ui/button'
 
-const route = useRoute();
-const page = ref(1);
-const walletId = route.params.id as string;
+const route = useRoute()
+const page = ref(1)
+const walletId = route.params.id as string
 
 const wallet = useQuery({
-  queryKey: ["wallets", { id: walletId }],
+  queryKey: ['wallets', { id: walletId }],
   async queryFn() {
     const res = await supabase
-      .from("wallets")
+      .from('wallets')
       .select(
         `
       id,
@@ -24,25 +24,25 @@ const wallet = useQuery({
         balance,
         currency_code
       )
-      `,
+      `
       )
-      .eq("id", route.params.id as string)
-      .single();
+      .eq('id', route.params.id as string)
+      .single()
 
     if (res.error) {
-      throw res.error;
+      throw res.error
     }
 
-    return res.data;
+    return res.data
   },
-});
+})
 
 const transactions = useQuery({
   async queryFn() {
     // Получаем записи транзакций для данного кошелька
     // вместе с полной информацией о каждой транзакции
     const { data, error } = await supabase
-      .from("transaction_entries")
+      .from('transaction_entries')
       .select(
         `
         transaction_id,
@@ -64,13 +64,13 @@ const transactions = useQuery({
             created_at
           )
         )
-        `,
+        `
       )
-      .eq("wallet_id", walletId)
-      .order("transaction(date)", { ascending: false });
+      .eq('wallet_id', walletId)
+      .order('transaction(date)', { ascending: false })
 
     if (error) {
-      throw error;
+      throw error
     }
 
     // Удаляем дубликаты транзакций, которые могут возникнуть
@@ -80,14 +80,14 @@ const transactions = useQuery({
         data
           .map((entry) => entry.transaction)
           .filter((t) => t !== null)
-          .map((transaction) => [transaction.id, transaction]),
-      ).values(),
-    );
+          .map((transaction) => [transaction.id, transaction])
+      ).values()
+    )
 
-    return uniqueTransactions;
+    return uniqueTransactions
   },
-  queryKey: ["walletTransactions", walletId, page.value],
-});
+  queryKey: ['walletTransactions', walletId, page.value],
+})
 </script>
 
 <template>

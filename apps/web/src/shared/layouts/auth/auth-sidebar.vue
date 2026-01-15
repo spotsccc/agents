@@ -1,31 +1,35 @@
 <script setup lang="ts">
-
 import {
-  Sidebar, SidebarContent,
-  SidebarFooter, SidebarGroup,
-  SidebarGroupContent, SidebarGroupLabel,
-  SidebarHeader, SidebarMenu,
-  SidebarMenuButton, SidebarMenuItem
-} from "@/shared/components/ui/sidebar";
-import {RouterLink} from "vue-router";
-import UserMenu from "@/shared/layouts/auth/user-menu.vue";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/shared/components/ui/sidebar'
+import { RouterLink } from 'vue-router'
+import UserMenu from '@/shared/layouts/auth/user-menu.vue'
 
 const finance = [
   {
-    title: "Wallets",
-    url: "/wallets",
+    title: 'Wallets',
+    url: '/wallets',
   },
   {
-    title: "Dashboard",
-    url: "/dashboard",
+    title: 'Dashboard',
+    url: '/dashboard',
   },
-];
+]
 </script>
 
 <template>
   <Sidebar>
     <SidebarHeader>
-      <UserMenu/>
+      <UserMenu />
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup>
@@ -43,6 +47,6 @@ const finance = [
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
-    <SidebarFooter/>
+    <SidebarFooter />
   </Sidebar>
 </template>
