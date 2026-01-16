@@ -89,11 +89,7 @@ const onSubmit = handleSubmit((values) => mutateAsync(values))
 
     <div class="flex flex-col gap-1">
       <Label for="description" class="text-sm">Description</Label>
-      <Textarea
-        id="description"
-        v-model="description"
-        placeholder="Optional description"
-      />
+      <Textarea id="description" v-model="description" placeholder="Optional description" />
       <p v-if="errors.description" class="text-xs text-destructive">
         {{ errors.description }}
       </p>
@@ -101,9 +97,7 @@ const onSubmit = handleSubmit((values) => mutateAsync(values))
 
     <div class="flex items-center gap-2">
       <Checkbox id="is_recurring" v-model:checked="isRecurring" />
-      <Label for="is_recurring" class="text-sm cursor-pointer">
-        Recurring income
-      </Label>
+      <Label for="is_recurring" class="text-sm cursor-pointer"> Recurring income </Label>
     </div>
 
     <Input
@@ -114,13 +108,7 @@ const onSubmit = handleSubmit((values) => mutateAsync(values))
       :error="errors.icon"
     />
 
-    <Input
-      id="color"
-      v-model="color"
-      label="Color"
-      placeholder="#FF5733"
-      :error="errors.color"
-    />
+    <Input id="color" v-model="color" label="Color" placeholder="#FF5733" :error="errors.color" />
 
     <Button type="submit" class="w-full" :disabled="isPending">
       {{ isPending ? 'Creating...' : 'Create Source' }}

@@ -3,6 +3,10 @@ import {
   type CreateIncomeTransactionRequest,
   CREATE_INCOME_TRANSACTION,
 } from 'supabase/create-income-transaction'
+import {
+  type CreateExpenseTransactionRequest,
+  CREATE_EXPENSE_TRANSACTION,
+} from 'supabase/create-expense-transaction'
 import { Input } from '@/shared/components/ui/input'
 import VSelect from '@/shared/components/ui/select/v-select.vue'
 import { z } from 'zod'
@@ -15,6 +19,7 @@ import { useRouter } from 'vue-router'
 import { useUser } from '@/shared/auth/use-user'
 import Button from '@/shared/components/ui/button/button.vue'
 import IncomeSourceSelect from './income-source-select.vue'
+import CategorySelect from './category-select.vue'
 
 const props = defineProps<{ walletId: string }>()
 
@@ -33,13 +38,17 @@ const schema = z
     currency: z.string().min(1, 'Currency is required'),
     description: z.string(),
     type: z.enum(['income', 'expense', 'transfer', 'exchange']),
-    category: z.string().optional(),
+    categoryId: z.string().optional(),
     sourceId: z.string().optional(),
   })
-  .refine(
-    (data) => data.type !== 'income' || !!data.sourceId,
-    { message: 'Income source is required', path: ['sourceId'] }
-  )
+  .refine((data) => data.type !== 'income' || !!data.sourceId, {
+    message: 'Income source is required',
+    path: ['sourceId'],
+  })
+  .refine((data) => data.type !== 'expense' || !!data.categoryId, {
+    message: 'Category is required',
+    path: ['categoryId'],
+  })
 
 type FormValues = z.infer<typeof schema>
 
@@ -51,13 +60,14 @@ const { handleSubmit, errors, defineField } = useForm<FormValues>({
     description: '',
     type: 'expense',
     sourceId: undefined,
+    categoryId: undefined,
   },
 })
 
 const [amount] = defineField('amount')
 const [type] = defineField('type')
 const [currency] = defineField('currency')
-const [category] = defineField('category')
+const [categoryId] = defineField('categoryId')
 const [sourceId] = defineField('sourceId')
 
 const { data: currencies, isPending: currenciesLoading } = useQuery({
@@ -69,24 +79,19 @@ const { data: currencies, isPending: currenciesLoading } = useQuery({
   },
 })
 
-const currencyItems = computed(() =>
-  currencies.value?.map((c) => ({ id: c.code, label: c.code })) ?? []
+const currencyItems = computed(
+  () => currencies.value?.map((c) => ({ id: c.code, label: c.code })) ?? []
 )
 
-const { data: categoriesData, isPending: categoriesLoading } = useQuery({
-  queryKey: ['categories'],
-  queryFn: async () => {
-    const { data, error } = await supabase.from('categories').select()
-    if (error) throw error
-    return data
-  },
-})
+const invalidateAndNavigate = async () => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['walletTransactions', props.walletId] }),
+    queryClient.invalidateQueries({ queryKey: ['wallets', { id: props.walletId }] }),
+  ])
+  router.push({ name: 'wallet', params: { id: props.walletId } })
+}
 
-const categoryItems = computed(() =>
-  categoriesData.value?.map((c) => ({ id: c.id, label: c.name })) ?? []
-)
-
-const { mutateAsync, isPending: isSubmitting } = useMutation({
+const { mutateAsync: createIncome, isPending: isIncomeSubmitting } = useMutation({
   mutationFn: async (params: CreateIncomeTransactionRequest) => {
     const { data, error } = await supabase.functions.invoke(CREATE_INCOME_TRANSACTION, {
       body: params,
@@ -94,37 +99,44 @@ const { mutateAsync, isPending: isSubmitting } = useMutation({
     if (error) throw error
     return data
   },
-  onSuccess: async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['walletTransactions', props.walletId] }),
-      queryClient.invalidateQueries({ queryKey: ['wallets', { id: props.walletId }] }),
-    ])
-    router.push({ name: 'wallet', params: { id: props.walletId } })
-  },
+  onSuccess: invalidateAndNavigate,
 })
+
+const { mutateAsync: createExpense, isPending: isExpenseSubmitting } = useMutation({
+  mutationFn: async (params: CreateExpenseTransactionRequest) => {
+    const { data, error } = await supabase.functions.invoke(CREATE_EXPENSE_TRANSACTION, {
+      body: params,
+    })
+    if (error) throw error
+    return data
+  },
+  onSuccess: invalidateAndNavigate,
+})
+
+const isSubmitting = computed(() => isIncomeSubmitting.value || isExpenseSubmitting.value)
 
 const onSubmit = handleSubmit(async (values) => {
   if (!user.value) return
 
-  await mutateAsync({
+  const baseParams = {
     userId: user.value.id,
     walletId: props.walletId,
-    sourceId: values.sourceId!,
     amount: values.amount,
     currency: values.currency,
     description: values.description,
-  })
+  }
+
+  if (values.type === 'income') {
+    await createIncome({ ...baseParams, sourceId: values.sourceId! })
+  } else if (values.type === 'expense') {
+    await createExpense({ ...baseParams, categoryId: values.categoryId! })
+  }
 })
 </script>
 
 <template>
   <form @submit="onSubmit" class="flex flex-col gap-2">
-    <VSelect
-      id="type"
-      v-model="type"
-      :items="transactionTypes"
-      label="Transaction type"
-    />
+    <VSelect id="type" v-model="type" :items="transactionTypes" label="Transaction type" />
 
     <VSelect
       id="currency"
@@ -135,22 +147,13 @@ const onSubmit = handleSubmit(async (values) => {
       label="Currency"
     />
 
-    <Input
-      id="amount"
-      v-model="amount"
-      type="number"
-      label="Amount"
-      :error="errors.amount"
-    />
+    <Input id="amount" v-model="amount" type="number" label="Amount" :error="errors.amount" />
 
-    <VSelect
+    <CategorySelect
       v-if="type === 'expense'"
-      id="category"
-      v-model="category"
-      :items="categoryItems"
-      :loading="categoriesLoading"
-      :error="errors.category"
+      v-model="categoryId"
       label="Category"
+      :error="errors.categoryId"
     />
 
     <IncomeSourceSelect

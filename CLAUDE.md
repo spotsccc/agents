@@ -15,6 +15,7 @@ pnpm dev                  # Run all apps in dev mode
 pnpm build                # Build all packages
 pnpm lint                 # Lint all packages
 pnpm format               # Format with Prettier
+pnpm test:unit            # Run unit tests in all packages
 
 # Supabase commands
 pnpm supabase:start       # Start local Supabase
@@ -79,7 +80,134 @@ Exports TypeScript types from `./scheme/index.ts` for database tables (wallets, 
 - **Styling**: Tailwind CSS v4, shadcn-vue, Lucide icons
 - **Backend**: Supabase (Auth, PostgreSQL, Edge Functions)
 - **Build**: Vite 7, Turborepo, pnpm
-- **Testing**: Vitest (unit), Playwright (E2E), Storybook
+- **Testing**: Vitest (unit), Playwright (E2E), Storybook, Testing Library
+
+## Unit Testing
+
+### Test Infrastructure
+
+Tests use `@testing-library/vue` + `@testing-library/user-event` + `@testing-library/jest-dom`.
+
+**Key files:**
+- `src/shared/tests/setup.ts` — global setup (mocks, cleanup, jest-dom matchers)
+- `src/shared/tests/utils.ts` — `renderWithPlugins()` helper
+- `src/shared/tests/mocks.ts` — reusable mock implementations
+- `src/shared/supabase/__mocks__/index.ts` — Supabase automock
+
+### Writing Tests
+
+**Use `renderWithPlugins` for components with Vue Query:**
+```typescript
+import { renderWithPlugins } from '@/shared/tests/utils'
+import { mockSupabaseFrom } from '@/shared/tests/mocks'
+
+const { user, emitted } = renderWithPlugins(MyComponent)
+```
+
+**Use semantic selectors (NOT CSS selectors):**
+```typescript
+// ✅ Good — accessible, resilient to implementation changes
+screen.getByRole('button', { name: 'Submit' })
+screen.getByLabelText('Email')
+screen.getByText('Error message')
+
+// ❌ Bad — fragile, not accessible
+wrapper.find('#submit-btn')
+wrapper.find('.email-input')
+```
+
+**Use `userEvent` for interactions (NOT `trigger`):**
+```typescript
+// ✅ Good — simulates real user behavior
+await user.click(screen.getByRole('button'))
+await user.type(screen.getByLabelText('Name'), 'John')
+
+// ❌ Bad — low-level, doesn't simulate real events properly
+await wrapper.find('button').trigger('click')
+```
+
+**Use `waitFor` for async assertions (NOT multiple flushPromises):**
+```typescript
+// ✅ Good — declarative, waits for condition
+await waitFor(() => {
+  expect(screen.getByText('Success')).toBeInTheDocument()
+})
+
+// ❌ Bad — fragile, magic numbers
+await flushPromises()
+await nextTick()
+await new Promise(r => setTimeout(r, 10))
+await flushPromises()
+```
+
+**Mock overrides for specific tests:**
+```typescript
+mockSupabaseFrom.mockReturnValueOnce({
+  insert: () => ({
+    select: () => ({
+      single: () => Promise.resolve({ data: null, error: { message: 'Error' } }),
+    }),
+  }),
+} as ReturnType<typeof mockSupabaseFrom>)
+```
+
+### Test Structure
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest'
+import { screen, waitFor } from '@testing-library/vue'
+import { renderWithPlugins } from '@/shared/tests/utils'
+import { mockSupabaseFrom } from '@/shared/tests/mocks'
+import MyComponent from '../my-component.vue'
+
+describe('MyComponent', () => {
+  beforeEach(() => {
+    mockSupabaseFrom.mockClear()
+  })
+
+  it('does something', async () => {
+    const { user } = renderWithPlugins(MyComponent)
+
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Success')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+### Anti-patterns to Avoid
+
+1. **No arbitrary timeouts** — never use `wait(5)`, `setTimeout(10)`, etc.
+2. **No multiple flushPromises** — use `waitFor` instead
+3. **No CSS/ID selectors** — use `getByRole`, `getByLabelText`, `getByText`
+4. **No `vi.resetModules()` + dynamic imports** — setup.ts handles mocking
+5. **No `wrapper.find().trigger()`** — use `userEvent` methods
+
+## Verification Workflow
+
+**IMPORTANT**: After every code change where the code is expected to work, run verification from the relevant package/app directory:
+
+```bash
+cd <package-or-app-dir> && pnpm type-check && pnpm lint && pnpm format && pnpm test:unit
+```
+
+Examples:
+- `cd apps/web && pnpm type-check && pnpm lint && pnpm format && pnpm test:unit`
+- `cd packages/supabase && pnpm type-check && pnpm lint && pnpm format && pnpm test:unit`
+
+This applies to TypeScript/Vue code changes:
+- Writing or modifying tests
+- Writing or modifying components/functions
+- Refactoring code
+- Fixing bugs
+
+Does NOT apply to:
+- Documentation (markdown files)
+- Configuration files (unless they affect build/types)
+
+Do NOT consider a task complete until both type-check and tests pass.
 
 ## Code Style
 

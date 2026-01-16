@@ -11,12 +11,17 @@
     "./create-income-transaction": {
       "types": "./functions/create-income-transaction/contract.ts",
       "import": "./functions/create-income-transaction/contract.ts"
+    },
+    "./create-expense-transaction": {
+      "types": "./functions/create-expense-transaction/contract.ts",
+      "import": "./functions/create-expense-transaction/contract.ts"
     }
   },
   "typesVersions": {
     "*": {
       "scheme": ["./scheme/index.ts"],
-      "create-income-transaction": ["./functions/create-income-transaction/contract.ts"]
+      "create-income-transaction": ["./functions/create-income-transaction/contract.ts"],
+      "create-expense-transaction": ["./functions/create-expense-transaction/contract.ts"]
     }
   },
   "files": [
@@ -25,5 +30,8 @@
     "src"
   ],
   "scripts": {
+    "gen:types": "supabase gen types typescript --local > scheme/index.ts",
+    "functions:serve": "supabase functions serve --env-file .env",
+    "functions:deploy": "supabase functions deploy"
   }
 }
