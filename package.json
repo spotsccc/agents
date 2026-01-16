@@ -1,8 +1,9 @@
 {
   "private": true,
   "scripts": {
-    "supabase:functions-serve": "supabase functions serve --env-file supabase/.env",
-    "supabase:functions-deploy": "supabase functions deploy",
+    "supabase:gen-types": "pnpm --filter supabase gen:types",
+    "supabase:functions-serve": "pnpm --filter supabase functions:serve",
+    "supabase:functions-deploy": "pnpm --filter supabase functions:deploy",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
@@ -10,7 +11,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test:unit": "turbo run test:unit"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
