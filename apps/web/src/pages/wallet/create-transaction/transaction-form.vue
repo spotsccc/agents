@@ -12,7 +12,7 @@ import { supabase } from '@/shared/supabase'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useUser } from '@/shared/auth/use-user'
-import Button from '@/shared/components/ui/button/Button.vue'
+import Button from '@/shared/components/ui/button/button.vue'
 
 const { walletId } = defineProps<{ walletId: string }>()
 
