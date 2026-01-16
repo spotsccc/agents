@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { Item } from './type.ts'
-import Select from '@/shared/components/ui/select/Select.vue'
+import Select from '@/shared/components/ui/select/select.vue'
 import {
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select/index.ts'
-import SelectLabel from '@/shared/components/ui/select/SelectLabel.vue'
+import SelectLabel from '@/shared/components/ui/select/select-label.vue'
 
 const {
   loading = false,
