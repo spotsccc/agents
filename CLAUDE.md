@@ -74,6 +74,58 @@ src/
 
 Exports TypeScript types from `./scheme/index.ts` for database tables (wallets, transactions, categories, etc.) and Edge Function contracts.
 
+### Edge Functions
+
+When creating a new Edge Function, you MUST:
+
+1. **Create `deno.json`** in the function directory (`packages/supabase/functions/<function-name>/deno.json`):
+```json
+{
+  "imports": {
+    "kysely": "npm:kysely",
+    "pg": "npm:pg",
+    "supabase": "npm:@supabase/supabase-js"
+  }
+}
+```
+
+2. **Create a type-safe wrapper** in `apps/web/src/shared/supabase/edge-functions/`:
+   - Create `<function-name>.ts` with request/response types and wrapper function
+   - Export from `index.ts`
+   - Use the `invokeEdgeFunction` helper from `./invoke.ts`
+
+**Example wrapper (`create-income-transaction.ts`):**
+```typescript
+import {
+  CREATE_INCOME_TRANSACTION,
+  type CreateIncomeTransactionRequest,
+} from 'supabase/create-income-transaction'
+import { invokeEdgeFunction } from './invoke'
+import type { EdgeFunctionResult } from './types'
+
+export type CreateIncomeTransactionResponse = {
+  transaction_id: string
+  entry_id: string
+  previous_balance: number
+  new_balance: number
+  currency: string
+  timestamp: string
+}
+
+export type { CreateIncomeTransactionRequest }
+
+export function createIncomeTransaction(
+  params: CreateIncomeTransactionRequest
+): Promise<EdgeFunctionResult<CreateIncomeTransactionResponse>> {
+  return invokeEdgeFunction<CreateIncomeTransactionRequest, CreateIncomeTransactionResponse>(
+    CREATE_INCOME_TRANSACTION,
+    params
+  )
+}
+```
+
+**Error handling:** The `invokeEdgeFunction` helper handles all Supabase error types (`FunctionsHttpError`, `FunctionsRelayError`, `FunctionsFetchError`) and returns a discriminated union `EdgeFunctionResult<T>`.
+
 ## Tech Stack
 
 - **Frontend**: Vue 3, Vue Router, TanStack Vue Query, Vee-Validate + Zod

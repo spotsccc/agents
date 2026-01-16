@@ -17,6 +17,7 @@ interface RenderWithPluginsOptions {
   slots?: Record<string, unknown>
   global?: {
     plugins?: Plugin[]
+    stubs?: Record<string, unknown>
   }
 }
 
@@ -29,6 +30,11 @@ export function renderWithPlugins(component: Component, options: RenderWithPlugi
     slots: options.slots,
     global: {
       plugins: [[VueQueryPlugin, { queryClient }], ...(options.global?.plugins || [])],
+      stubs: {
+        // Stub Teleport to render content inline (needed for Reka UI Select/Dropdown tests)
+        teleport: true,
+        ...options.global?.stubs,
+      },
     },
   })
 
