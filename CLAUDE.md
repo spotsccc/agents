@@ -303,6 +303,20 @@ Does NOT apply to:
 
 Do NOT consider a task complete until both type-check and tests pass.
 
+## Documentation
+
+Project documentation is located in `docs/` folder. See [docs/README.md](./docs/README.md) for structure.
+
+**IMPORTANT**: When making changes to features, you MUST also update the documentation:
+
+- **New feature** — Add documentation to the relevant file in `docs/features/`
+- **Modified feature** — Update the corresponding documentation
+- **New Edge Function** — Document in `docs/architecture/backend.md`
+- **Database schema changes** — Update `docs/architecture/database.md`
+- **New architectural patterns** — Update `docs/architecture/`
+
+Do NOT consider a feature complete until documentation is updated.
+
 ## Code Style
 
 - No semicolons, single quotes, 2-space indent, trailing commas in ES5 contexts
