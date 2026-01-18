@@ -64,7 +64,14 @@ See [Architecture > Frontend](./architecture/frontend.md#development-commands) f
 
 For detailed technical information, see [Architecture](./architecture/README.md).
 
+## Project Links
+
+| Resource | URL |
+|----------|-----|
+| Production | https://agents-web-chi.vercel.app |
+| GitHub | https://github.com/spotsccc/agents |
+| Vercel Dashboard | https://vercel.com/spotscccs-projects/agents-web |
+
 ## Related Resources
 
-- [CLAUDE.md](../CLAUDE.md) - AI assistant guidelines for this codebase
-- [GitHub Repository](https://github.com/anthropics/agents) - Source code
+- [CLAUDE.md](../CLAUDE.md) — AI assistant guidelines for this codebase
