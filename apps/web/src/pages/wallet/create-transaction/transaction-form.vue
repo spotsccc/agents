@@ -24,26 +24,32 @@ import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/aler
 import { CircleAlert } from 'lucide-vue-next'
 import IncomeSourceSelect from './income-source-select.vue'
 import CategorySelect from './category-select.vue'
+import {
+  TRANSACTION_TYPES,
+  TRANSACTION_TYPE_LABELS,
+  type TransactionType,
+} from '@/shared/constants/transaction-types'
 
-const props = defineProps<{ walletId: string }>()
+const props = defineProps<{
+  walletId: string
+  initialType?: TransactionType
+}>()
 
 const router = useRouter()
 const queryClient = useQueryClient()
 const { user } = useUser()
 
-const transactionTypes = [
-  { id: 'expense', label: 'Expense' },
-  { id: 'income', label: 'Income' },
-  { id: 'exchange', label: 'Exchange' },
-  { id: 'transfer', label: 'Transfer' },
-]
+const transactionTypes = TRANSACTION_TYPES.map((type) => ({
+  id: type,
+  label: TRANSACTION_TYPE_LABELS[type],
+}))
 
 const schema = z
   .object({
     amount: z.number().positive('Amount must be positive'),
     currency: z.string().min(1, 'Currency is required'),
     description: z.string(),
-    type: z.enum(['income', 'expense', 'transfer', 'exchange']),
+    type: z.enum(TRANSACTION_TYPES),
     categoryId: z.string().optional(),
     sourceId: z.string().optional(),
     toCurrency: z.string().optional(),
@@ -91,7 +97,7 @@ const { handleSubmit, errors, defineField } = useForm<FormValues>({
     amount: 0,
     currency: 'USD',
     description: '',
-    type: 'expense',
+    type: props.initialType ?? 'expense',
     sourceId: undefined,
     categoryId: undefined,
     toCurrency: undefined,

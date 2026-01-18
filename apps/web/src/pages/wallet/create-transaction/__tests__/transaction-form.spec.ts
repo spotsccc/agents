@@ -426,6 +426,60 @@ describe('TransactionForm', () => {
     })
   })
 
+  describe('initialType prop', () => {
+    it('defaults to expense when no initialType provided', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      // Expense shows Category field
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+    })
+
+    it('uses income initialType and shows income source field', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1', initialType: 'income' },
+      })
+
+      // Income shows Income Source field (use exact match to avoid matching placeholder)
+      await expect.element(screen.getByText('Income Source', { exact: true })).toBeVisible()
+    })
+
+    it('uses exchange initialType and shows exchange fields', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1', initialType: 'exchange' },
+      })
+
+      await expect.element(screen.getByText('To Currency')).toBeVisible()
+      await expect.element(screen.getByLabelText('Amount to Receive')).toBeVisible()
+    })
+
+    it('uses transfer initialType and shows transfer fields', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1', initialType: 'transfer' },
+      })
+
+      await expect.element(screen.getByText('Destination Wallet')).toBeVisible()
+      await expect.element(screen.getByText('Destination Currency')).toBeVisible()
+    })
+
+    it('allows changing type after initial selection', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1', initialType: 'income' },
+      })
+
+      // Initially shows income source (use exact match)
+      await expect.element(screen.getByText('Income Source', { exact: true })).toBeVisible()
+
+      // Change to expense
+      await selectCombobox(screen, COMBOBOX.TYPE, 'Expense')
+
+      // Now shows category instead
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      expect(screen.getByText('Income Source', { exact: true }).query()).toBeNull()
+    })
+  })
+
   describe('error handling', () => {
     it('displays error when expense creation fails', async () => {
       mockCreateExpense.mockResolvedValueOnce({

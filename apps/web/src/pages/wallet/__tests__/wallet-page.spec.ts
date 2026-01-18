@@ -88,7 +88,7 @@ describe('WalletPage', () => {
     })
 
     // Content should be hidden during loading
-    expect(screen.getByRole('link', { name: 'Create new transaction' }).query()).toBeNull()
+    expect(screen.getByRole('link', { name: /Income/ }).query()).toBeNull()
     expect(screen.getByRole('heading', { name: 'Recent Transactions' }).query()).toBeNull()
 
     resolve({ data: mockWallet, error: null })
@@ -110,18 +110,19 @@ describe('WalletPage', () => {
     const screen = renderPage()
 
     await expect.element(screen.getByText('Failed to load wallet')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Create new transaction' }).query()).toBeNull()
+    expect(screen.getByRole('link', { name: /Income/ }).query()).toBeNull()
   })
 
-  it('renders create transaction link with correct href', async () => {
+  it('renders quick action buttons', async () => {
     setupMocks(mockWalletQuery(mockWallet))
 
     const screen = renderPage()
 
-    await vi.waitFor(() => {
-      const link = screen.getByRole('link', { name: 'Create new transaction' })
-      expect(link.element().getAttribute('href')).toBe('/wallets/wallet-123/transactions/create')
-    })
+    // Verify all quick action buttons are rendered (details tested in quick-action-buttons.spec.ts)
+    await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
+    await expect.element(screen.getByRole('link', { name: /Expense/ })).toBeVisible()
+    await expect.element(screen.getByRole('link', { name: /Transfer/ })).toBeVisible()
+    await expect.element(screen.getByRole('link', { name: /Exchange/ })).toBeVisible()
   })
 
   it('renders transactions preview section', async () => {
@@ -139,7 +140,8 @@ describe('WalletPage', () => {
     const screen = renderPage()
 
     await expect.element(screen.getByRole('heading', { name: 'My Savings' })).toBeVisible()
-    // Should not crash and should still show the page
-    await expect.element(screen.getByRole('link', { name: 'Create new transaction' })).toBeVisible()
+    // Should not crash and should still show the page with quick action buttons
+    await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
+    await expect.element(screen.getByRole('link', { name: /Expense/ })).toBeVisible()
   })
 })

@@ -4,10 +4,10 @@ import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { Wallet } from 'lucide-vue-next'
 import { supabase } from '@/shared/supabase'
-import { Button } from '@/shared/components/ui/button'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import TransactionsListPreview from './transactions-list-preview.vue'
 import WalletBalanceDisplay from './wallet-balance-display.vue'
+import QuickActionButtons from './quick-action-buttons.vue'
 
 const route = useRoute()
 const walletId = route.params.id as string
@@ -70,11 +70,7 @@ const walletData = computed(() => wallet.data.value)
     </header>
 
     <template v-if="walletData">
-      <Button as-child>
-        <RouterLink :to="`/wallets/${walletId}/transactions/create`">
-          Create new transaction
-        </RouterLink>
-      </Button>
+      <QuickActionButtons :wallet-id="walletId" />
       <TransactionsListPreview :wallet-id="walletId" class="mt-6" />
     </template>
   </div>
