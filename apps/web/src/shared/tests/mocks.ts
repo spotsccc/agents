@@ -1,4 +1,5 @@
 import { vi } from 'vitest'
+import { defineComponent, h } from 'vue'
 
 type SupabaseResponse<T> = Promise<{ data: T | null; error: { message: string } | null }>
 
@@ -26,3 +27,11 @@ export const mockSupabaseFrom = vi.fn(() => ({
 export const mockSupabase = {
   from: mockSupabaseFrom,
 }
+
+export const RouterLinkStub = defineComponent({
+  name: 'RouterLink',
+  props: ['to'],
+  setup(props, { slots }) {
+    return () => h('a', { href: props.to }, slots.default?.())
+  },
+})

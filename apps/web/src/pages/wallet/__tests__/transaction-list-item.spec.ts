@@ -7,6 +7,14 @@ import type { Tables } from 'supabase/scheme'
 
 type TransactionEntry = Tables<'transaction_entries'>
 
+// Helper to create ISO 8601 date string in Supabase format (date at midnight UTC)
+function toSupabaseDate(date: Date): string {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}T00:00:00+00:00`
+}
+
 function createEntry(overrides: Partial<TransactionEntry> = {}): TransactionEntry {
   return {
     id: 'entry-1',
@@ -18,7 +26,7 @@ function createEntry(overrides: Partial<TransactionEntry> = {}): TransactionEntr
     category_id: null,
     source_id: null,
     notes: null,
-    created_at: '2024-01-15T10:00:00Z',
+    created_at: '2024-01-15T10:30:00+00:00',
     metadata: null,
     ...overrides,
   }
@@ -29,9 +37,9 @@ function createTransaction(overrides: Partial<Transaction> = {}): Transaction {
     id: 'tx-1',
     type: 'expense',
     description: null,
-    date: '2024-01-15',
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
+    date: '2024-01-15T00:00:00+00:00',
+    created_at: '2024-01-15T10:30:00+00:00',
+    updated_at: '2024-01-15T10:30:00+00:00',
     deleted_at: null,
     user_id: 'user-1',
     entries: [createEntry({ category_id: 'cat-1' })],
@@ -246,8 +254,7 @@ describe('TransactionListItem', () => {
 
   describe('date formatting', () => {
     it('shows "Today" for current date', async () => {
-      const today = format(new Date(), 'yyyy-MM-dd')
-      const transaction = createTransaction({ date: today })
+      const transaction = createTransaction({ date: toSupabaseDate(new Date()) })
       const screen = renderWithPlugins(TransactionListItem, {
         props: { transaction },
       })
@@ -256,8 +263,7 @@ describe('TransactionListItem', () => {
     })
 
     it('shows "Yesterday" for previous date', async () => {
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
-      const transaction = createTransaction({ date: yesterday })
+      const transaction = createTransaction({ date: toSupabaseDate(subDays(new Date(), 1)) })
       const screen = renderWithPlugins(TransactionListItem, {
         props: { transaction },
       })
@@ -268,9 +274,8 @@ describe('TransactionListItem', () => {
     it('shows short date for older dates in current year', async () => {
       // Use a date 10 days ago to ensure it's not Today/Yesterday
       const pastDate = subDays(new Date(), 10)
-      const dateStr = format(pastDate, 'yyyy-MM-dd')
       const expectedFormat = format(pastDate, 'MMM d')
-      const transaction = createTransaction({ date: dateStr })
+      const transaction = createTransaction({ date: toSupabaseDate(pastDate) })
       const screen = renderWithPlugins(TransactionListItem, {
         props: { transaction },
       })
@@ -279,12 +284,24 @@ describe('TransactionListItem', () => {
     })
 
     it('shows full date for dates in different year', async () => {
-      const transaction = createTransaction({ date: '2023-03-15' })
+      const transaction = createTransaction({ date: '2023-03-15T00:00:00+00:00' })
       const screen = renderWithPlugins(TransactionListItem, {
         props: { transaction },
       })
 
       await expect.element(screen.getByText(/Mar 15, 2023/)).toBeVisible()
+    })
+
+    it('handles UTC midnight without timezone shift', async () => {
+      // Supabase stores dates as midnight UTC
+      // This should show "Today" regardless of local timezone
+      // (e.g., UTC+3 should not shift to yesterday)
+      const transaction = createTransaction({ date: toSupabaseDate(new Date()) })
+      const screen = renderWithPlugins(TransactionListItem, {
+        props: { transaction },
+      })
+
+      await expect.element(screen.getByText(/Today/)).toBeVisible()
     })
   })
 
@@ -299,14 +316,14 @@ describe('TransactionListItem', () => {
     })
 
     it('has time element with datetime attribute', async () => {
-      const transaction = createTransaction({ date: '2024-01-15' })
+      const transaction = createTransaction({ date: '2024-01-15T00:00:00+00:00' })
       const screen = renderWithPlugins(TransactionListItem, {
         props: { transaction },
       })
 
       const timeElement = screen.container.querySelector('time')
       expect(timeElement).not.toBeNull()
-      expect(timeElement?.getAttribute('datetime')).toBe('2024-01-15')
+      expect(timeElement?.getAttribute('datetime')).toBe('2024-01-15T00:00:00+00:00')
     })
   })
 })

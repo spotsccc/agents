@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrendingUp, TrendingDown, ArrowLeftRight, RefreshCcw } from 'lucide-vue-next'
-import { parse, isToday, isYesterday, isSameYear, format } from 'date-fns'
-import type { Transaction } from '@/shared/supabase'
+import { isToday, isYesterday, isSameYear, format } from 'date-fns'
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'exchange'
 
@@ -14,8 +13,21 @@ interface TypeConfig {
   amountClass: string
 }
 
+interface TransactionEntry {
+  amount: number
+  balance_after: number
+  currency_code: string
+}
+
+interface TransactionData {
+  type: string
+  description: string | null
+  date: string | null
+  entries: TransactionEntry[]
+}
+
 interface Props {
-  transaction: Transaction
+  transaction: TransactionData
   categoryName?: string
   sourceName?: string
   targetWalletName?: string
@@ -145,9 +157,27 @@ const formattedBalance = computed(() => {
   return formatCurrency(entry.balance_after, entry.currency_code)
 })
 
+function parseLocalDate(dateString: string): Date | null {
+  // Extract date part (YYYY-MM-DD) to avoid timezone issues
+  const datePart = dateString.slice(0, 10)
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+
+  const [, year, month, day] = match
+  // Create date as local midnight (not UTC)
+  return new Date(Number(year), Number(month) - 1, Number(day))
+}
+
 const formattedDate = computed(() => {
-  const now = new Date()
-  const date = parse(props.transaction.date, 'yyyy-MM-dd', now)
+  if (!props.transaction.date) {
+    return ''
+  }
+
+  const date = parseLocalDate(props.transaction.date)
+
+  if (!date || isNaN(date.getTime())) {
+    return props.transaction.date
+  }
 
   if (isToday(date)) {
     return 'Today'
@@ -157,6 +187,7 @@ const formattedDate = computed(() => {
     return 'Yesterday'
   }
 
+  const now = new Date()
   if (isSameYear(date, now)) {
     return format(date, 'MMM d')
   }
@@ -181,7 +212,7 @@ const formattedDate = computed(() => {
     <div class="min-w-0 flex-1">
       <p class="truncate font-medium text-foreground">{{ displayTitle }}</p>
       <p class="truncate text-sm text-muted-foreground">
-        <time :datetime="transaction.date">{{ secondaryInfo }}</time>
+        <time :datetime="transaction.date ?? undefined">{{ secondaryInfo }}</time>
       </p>
     </div>
 

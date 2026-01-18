@@ -3,6 +3,7 @@ import { SignUpPage } from '@/pages/auth/sign-up'
 import { SignInPage } from '@/pages/auth/sign-in'
 import WalletsPage from '@/pages/wallets/wallets-page.vue'
 import WalletPage from '@/pages/wallet/wallet-page.vue'
+import WalletTransactionsPage from '@/pages/wallet/transactions/wallet-transactions-page.vue'
 import AuthLayout from '@/shared/layouts/auth/auth-layout.vue'
 import CreateTransactionPage from '@/pages/wallet/create-transaction/create-transaction-page.vue'
 import { useUser } from '../../shared/auth/use-user.ts'
@@ -42,6 +43,11 @@ export const router = createRouter({
           path: '/wallets/:id',
           name: 'wallet',
           component: WalletPage,
+        },
+        {
+          path: '/wallets/:id/transactions',
+          name: 'wallet-transactions',
+          component: WalletTransactionsPage,
         },
         {
           path: '/wallets/:id/transactions/create',
