@@ -1,7 +1,6 @@
 import { vi } from 'vitest'
 import { ref } from 'vue'
 import { config } from '@vue/test-utils'
-import '@testing-library/jest-dom/vitest'
 import '@/app/app.css'
 
 // vitest-browser-vue handles cleanup automatically
