@@ -3,6 +3,8 @@ import { mergeConfig, defineConfig, configDefaults } from 'vitest/config'
 import { playwright } from '@vitest/browser-playwright'
 import viteConfig from './vite.config'
 
+const isUiMode = process.argv.includes('--ui')
+
 export default mergeConfig(
   viteConfig,
   defineConfig({
@@ -11,7 +13,7 @@ export default mergeConfig(
         provider: playwright(),
         enabled: true,
         instances: [{ browser: 'chromium' }],
-        headless: true,
+        headless: !isUiMode,
       },
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),

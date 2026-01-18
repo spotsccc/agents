@@ -136,6 +136,10 @@ export function createIncomeTransaction(
 
 ## Unit Testing
 
+### Running Tests
+
+**IMPORTANT**: Tests use Vitest Browser Mode which requires binding to network ports. Due to sandbox restrictions, you MUST run `pnpm test:unit` with `dangerouslyDisableSandbox: true` to avoid `EPERM: operation not permitted` errors on port binding.
+
 ### Test Infrastructure
 
 Tests use `@testing-library/vue` + `@testing-library/user-event` + `@testing-library/jest-dom`.
