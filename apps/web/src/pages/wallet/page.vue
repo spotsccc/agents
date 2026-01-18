@@ -5,9 +5,9 @@ import { useQuery } from '@tanstack/vue-query'
 import { Wallet } from 'lucide-vue-next'
 import { supabase } from '@/shared/supabase'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import TransactionsListPreview from './transactions-list-preview.vue'
-import WalletBalanceDisplay from './wallet-balance-display.vue'
-import QuickActionButtons from './quick-action-buttons.vue'
+import TransactionsListPreview from './components/transactions-list-preview.vue'
+import WalletBalanceDisplay from './components/wallet-balance-display.vue'
+import QuickActionButtons from './components/quick-action-buttons.vue'
 
 const route = useRoute()
 const walletId = route.params.id as string
@@ -69,9 +69,7 @@ const walletData = computed(() => wallet.data.value)
       </div>
     </header>
 
-    <template v-if="walletData">
-      <QuickActionButtons :wallet-id="walletId" />
-      <TransactionsListPreview :wallet-id="walletId" class="mt-6" />
-    </template>
+    <QuickActionButtons :wallet-id="walletId" />
+    <TransactionsListPreview :wallet-id="walletId" class="mt-6" />
   </div>
 </template>

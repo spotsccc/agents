@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom, RouterLinkStub } from '@/shared/tests/mocks'
-import TransactionsListPreview from '../transactions-list-preview.vue'
+import TransactionsListPreview from '../components/transactions-list-preview.vue'
 
 function createMockTransactionEntry(
   overrides: {
@@ -99,7 +99,7 @@ describe('TransactionsListPreview', () => {
     await expect.element(screen.getByRole('heading', { name: 'Recent Transactions' })).toBeVisible()
   })
 
-  it('shows loading state and hides button while fetching', async () => {
+  it('shows skeleton items and hides button while fetching', async () => {
     let resolveQuery: (value: unknown) => void
     const queryPromise = new Promise((resolve) => {
       resolveQuery = resolve
@@ -109,7 +109,16 @@ describe('TransactionsListPreview', () => {
 
     const screen = renderComponent()
 
-    await expect.element(screen.getByText('Loading...')).toBeVisible()
+    // Should show 5 skeleton items
+    await vi.waitFor(async () => {
+      const skeletons = screen.container.querySelectorAll('[data-slot="skeleton"]')
+      expect(skeletons.length).toBeGreaterThan(0)
+    })
+
+    // List should have aria-label for accessibility
+    await expect.element(screen.getByRole('list', { name: 'Loading transactions' })).toBeVisible()
+
+    // View all button should be hidden during loading
     expect(screen.getByRole('link', { name: 'View all transactions' }).query()).toBeNull()
 
     resolveQuery!({ data: [], error: null })

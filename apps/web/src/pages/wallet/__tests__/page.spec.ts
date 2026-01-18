@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom, RouterLinkStub } from '@/shared/tests/mocks'
-import WalletPage from '../wallet-page.vue'
+import WalletPage from '../page.vue'
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { id: 'wallet-123' } }),
@@ -76,7 +76,7 @@ describe('WalletPage', () => {
     mockSupabaseFrom.mockClear()
   })
 
-  it('shows loading skeletons and hides content while fetching', async () => {
+  it('shows loading skeletons while fetching wallet data', async () => {
     const { promise, resolve } = createPendingPromise()
     setupMocks(mockWalletQueryPending(promise))
 
@@ -87,9 +87,9 @@ describe('WalletPage', () => {
       expect(skeletons.length).toBeGreaterThan(0)
     })
 
-    // Content should be hidden during loading
-    expect(screen.getByRole('link', { name: /Income/ }).query()).toBeNull()
-    expect(screen.getByRole('heading', { name: 'Recent Transactions' }).query()).toBeNull()
+    // Quick actions and transactions should be visible immediately (no waterfall)
+    await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
+    await expect.element(screen.getByRole('heading', { name: 'Recent Transactions' })).toBeVisible()
 
     resolve({ data: mockWallet, error: null })
   })
@@ -104,13 +104,14 @@ describe('WalletPage', () => {
     await expect.element(screen.getByText('\u20AC500.00')).toBeVisible()
   })
 
-  it('shows error message and hides content when fetch fails', async () => {
+  it('shows error message when wallet fetch fails but still shows quick actions', async () => {
     setupMocks(mockWalletQuery(null, { message: 'Database error' }))
 
     const screen = renderPage()
 
     await expect.element(screen.getByText('Failed to load wallet')).toBeVisible()
-    expect(screen.getByRole('link', { name: /Income/ }).query()).toBeNull()
+    // Quick actions are still visible (they don't depend on wallet data)
+    await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
   })
 
   it('renders quick action buttons', async () => {

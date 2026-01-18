@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
-import TransactionListItem from './transaction-list-item.vue'
+import {
+  TransactionListItem,
+  TransactionListItemSkeleton,
+} from '@/components/transaction-list-item'
 import { Button } from '@/shared/components/ui/button'
 import { supabase } from '@/shared/supabase'
 import type { Tables } from 'supabase/scheme'
+
+const PREVIEW_LIMIT = 5
 
 type TransactionEntry = Pick<
   Tables<'transaction_entries'>,
@@ -67,7 +72,7 @@ const {
 
     if (error) throw error
 
-    // Deduplicate and take first 5
+    // Deduplicate and limit to preview count
     const unique = Array.from(
       new Map(
         data
@@ -76,7 +81,7 @@ const {
           .map((transaction) => [transaction.id, transaction])
       ).values()
     )
-    return unique.slice(0, 5)
+    return unique.slice(0, PREVIEW_LIMIT)
   },
 })
 </script>
@@ -85,21 +90,37 @@ const {
   <section>
     <h2 class="mb-4 text-lg font-semibold">Recent Transactions</h2>
 
-    <p v-if="isPending">Loading...</p>
-    <p v-else-if="isError">Failed to load transactions</p>
-    <template v-else>
-      <ul v-if="transactions && transactions.length > 0" role="list">
-        <TransactionListItem
-          v-for="transaction in transactions"
-          :key="transaction.id"
-          :transaction="transaction"
-        />
+    <Transition name="fade" mode="out-in">
+      <ul v-if="isPending" key="skeleton" role="list" aria-label="Loading transactions">
+        <TransactionListItemSkeleton v-for="i in PREVIEW_LIMIT" :key="i" />
       </ul>
-      <p v-else>No transactions yet</p>
+      <p v-else-if="isError" key="error">Failed to load transactions</p>
+      <div v-else key="content">
+        <ul v-if="transactions && transactions.length > 0" role="list">
+          <TransactionListItem
+            v-for="transaction in transactions"
+            :key="transaction.id"
+            :transaction="transaction"
+          />
+        </ul>
+        <p v-else>No transactions yet</p>
 
-      <Button as-child variant="outline" class="mt-4">
-        <RouterLink :to="`/wallets/${walletId}/transactions`"> View all transactions </RouterLink>
-      </Button>
-    </template>
+        <Button as-child variant="outline" class="mt-4">
+          <RouterLink :to="`/wallets/${walletId}/transactions`"> View all transactions </RouterLink>
+        </Button>
+      </div>
+    </Transition>
   </section>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
