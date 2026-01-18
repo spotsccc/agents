@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderWithPlugins } from '@/shared/tests/utils'
-import { mockSupabaseFrom, RouterLinkStub } from '@/shared/tests/mocks'
+import { renderWithPlugins, createPendingPromise } from '@/shared/tests/utils'
+import {
+  mockSupabaseFrom,
+  RouterLinkStub,
+  mockSelectSingleQuery,
+  mockSelectSingleQueryPending,
+  mockOrderedQuery,
+  setupSupabaseMock,
+} from '@/shared/tests/mocks'
 import WalletPage from '../page.vue'
 
 vi.mock('vue-router', () => ({
@@ -17,52 +24,18 @@ const mockWallet = {
   ],
 }
 
-function createPendingPromise<T = unknown>() {
-  let resolve!: (value: T) => void
-  const promise = new Promise<T>((r) => {
-    resolve = r
+function setupMocks(walletData: unknown, walletError: { message: string } | null = null) {
+  setupSupabaseMock({
+    wallets: mockSelectSingleQuery(walletData, walletError),
+    transaction_entries: mockOrderedQuery([], null),
   })
-  return { promise, resolve }
 }
 
-function mockWalletQuery(data: unknown, error: unknown = null) {
-  return {
-    select: () => ({
-      eq: () => ({
-        single: () => Promise.resolve({ data, error }),
-      }),
-    }),
-  } as unknown as ReturnType<typeof mockSupabaseFrom>
-}
-
-function mockWalletQueryPending(promise: Promise<unknown>) {
-  return {
-    select: () => ({
-      eq: () => ({
-        single: () => promise,
-      }),
-    }),
-  } as unknown as ReturnType<typeof mockSupabaseFrom>
-}
-
-function mockTransactionsQuery() {
-  return {
-    select: () => ({
-      eq: () => ({
-        order: () => ({
-          limit: () => Promise.resolve({ data: [], error: null }),
-        }),
-      }),
-    }),
-  } as unknown as ReturnType<typeof mockSupabaseFrom>
-}
-
-function setupMocks(walletResponse: ReturnType<typeof mockSupabaseFrom>) {
-  mockSupabaseFrom.mockImplementation(((table: string) => {
-    if (table === 'wallets') return walletResponse
-    if (table === 'transaction_entries') return mockTransactionsQuery()
-    return walletResponse
-  }) as typeof mockSupabaseFrom)
+function setupMocksPending(promise: Promise<{ data: unknown; error: { message: string } | null }>) {
+  setupSupabaseMock({
+    wallets: mockSelectSingleQueryPending(promise),
+    transaction_entries: mockOrderedQuery([], null),
+  })
 }
 
 function renderPage() {
@@ -77,8 +50,11 @@ describe('WalletPage', () => {
   })
 
   it('shows loading skeletons while fetching wallet data', async () => {
-    const { promise, resolve } = createPendingPromise()
-    setupMocks(mockWalletQueryPending(promise))
+    const { promise, resolve } = createPendingPromise<{
+      data: typeof mockWallet | null
+      error: { message: string } | null
+    }>()
+    setupMocksPending(promise)
 
     const screen = renderPage()
 
@@ -95,7 +71,7 @@ describe('WalletPage', () => {
   })
 
   it('shows wallet name and balances after loading', async () => {
-    setupMocks(mockWalletQuery(mockWallet))
+    setupMocks(mockWallet)
 
     const screen = renderPage()
 
@@ -105,7 +81,7 @@ describe('WalletPage', () => {
   })
 
   it('shows error message when wallet fetch fails but still shows quick actions', async () => {
-    setupMocks(mockWalletQuery(null, { message: 'Database error' }))
+    setupMocks(null, { message: 'Database error' })
 
     const screen = renderPage()
 
@@ -116,7 +92,7 @@ describe('WalletPage', () => {
 
   it('handles wallet with empty balances', async () => {
     const walletWithoutBalances = { ...mockWallet, balances: [] }
-    setupMocks(mockWalletQuery(walletWithoutBalances))
+    setupMocks(walletWithoutBalances)
 
     const screen = renderPage()
 

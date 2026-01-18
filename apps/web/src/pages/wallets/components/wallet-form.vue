@@ -10,6 +10,10 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Button } from '@/shared/components/ui/button'
 import { supabase } from '@/shared/supabase'
 
+const emit = defineEmits<{
+  success: []
+}>()
+
 const { user } = useUser()
 const queryClient = useQueryClient()
 
@@ -40,7 +44,7 @@ const scheme = z.object({
   description: z.string(),
 })
 
-const { handleSubmit, defineField, errors } = useForm({
+const { handleSubmit, defineField, errors, resetForm } = useForm({
   validationSchema: toTypedSchema(scheme),
   initialValues: {
     name: '',
@@ -50,6 +54,8 @@ const { handleSubmit, defineField, errors } = useForm({
 
 const onSubmit = handleSubmit(async (values) => {
   await createWalletMutation.mutateAsync(values)
+  resetForm()
+  emit('success')
 })
 
 const [name] = defineField('name')

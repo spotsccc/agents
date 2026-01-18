@@ -6,6 +6,7 @@ import { WalletPage } from '@/pages/wallet'
 import { WalletTransactionsPage } from '@/pages/wallet/transactions'
 import AuthLayout from '@/shared/layouts/auth/auth-layout.vue'
 import { CreateTransactionPage } from '@/pages/wallet/create-transaction'
+import { CreateWalletPage } from '@/pages/wallets/create'
 import { useUser } from '../../shared/auth/use-user.ts'
 
 export const router = createRouter({
@@ -38,6 +39,11 @@ export const router = createRouter({
           path: '/wallets',
           name: 'wallets',
           component: WalletsPage,
+        },
+        {
+          path: '/wallets/create',
+          name: 'create-wallet',
+          component: CreateWalletPage,
         },
         {
           path: '/wallets/:id',

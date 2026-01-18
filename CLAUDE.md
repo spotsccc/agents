@@ -94,6 +94,13 @@ src/
    - shadcn-vue components only
    - Added via `npx shadcn-vue@latest add <component>`
 
+5. **Tests are required for all components**:
+   - Every new component MUST have accompanying unit tests
+   - Tests go in `__tests__/` folder next to the component
+   - Test file naming: `<component-name>.spec.ts`
+   - Example: `src/pages/wallet/components/wallet-balance-display.vue` → `src/pages/wallet/__tests__/wallet-balance-display.spec.ts`
+   - Do NOT consider a component complete until tests are written and passing
+
 **When to move a component to `src/components/`:**
 - When it's needed by 2+ pages
 - When it represents a standalone, reusable UI pattern
