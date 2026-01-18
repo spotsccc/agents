@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { render } from 'vitest-browser-vue'
-import CreateTransactionPage from '../create-transaction-page.vue'
+import CreateTransactionPage from '../page.vue'
 
 // Capture props passed to TransactionForm
 let capturedProps: { walletId?: string; initialType?: string } = {}
 
-vi.mock('../transaction-form.vue', () => ({
+vi.mock('../components/transaction-form.vue', () => ({
   default: defineComponent({
     name: 'TransactionFormMock',
     props: ['walletId', 'initialType'],

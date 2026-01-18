@@ -42,6 +42,14 @@ export default defineConfigWithVueTs(
   },
 
   {
+    name: 'app/page-components',
+    files: ['src/pages/**/page.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
+  {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
   },

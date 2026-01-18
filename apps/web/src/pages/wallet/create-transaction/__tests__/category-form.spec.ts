@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom } from '@/shared/tests/mocks'
-import CategoryForm from '../category-form.vue'
+import CategoryForm from '../components/category-form.vue'
 
 describe('CategoryForm', () => {
   beforeEach(() => {

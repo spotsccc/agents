@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom } from '@/shared/tests/mocks'
-import IncomeSourceForm from '../income-source-form.vue'
+import IncomeSourceForm from '../components/income-source-form.vue'
 
 describe('IncomeSourceForm', () => {
   beforeEach(() => {

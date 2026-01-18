@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, Plus } from 'lucide-vue-next'
+import { ArrowLeft } from 'lucide-vue-next'
 import { Button } from '@/shared/components/ui/button'
-import TransactionForm from '@/pages/wallet/create-transaction/transaction-form.vue'
+import TransactionForm from './components/transaction-form.vue'
 import { isValidTransactionType } from '@/shared/constants/transaction-types'
 
 const route = useRoute()
@@ -36,9 +36,6 @@ const backRoute = computed(() =>
             <span class="sr-only">Back to wallet</span>
           </RouterLink>
         </Button>
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Plus class="h-4 w-4 text-primary" />
-        </div>
         <div class="min-w-0">
           <h1 class="truncate text-lg font-semibold leading-tight">New Transaction</h1>
         </div>

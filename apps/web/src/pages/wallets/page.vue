@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
 import { supabase } from '@/shared/supabase'
-import WalletForm from '@/pages/wallets/wallet-form.vue'
-import WalletRow from '@/pages/wallets/wallet-row.vue'
+import WalletForm from './components/wallet-form.vue'
+import WalletRow from './components/wallet-row.vue'
 
 const walletsQuery = useQuery({
   queryKey: ['wallets'],

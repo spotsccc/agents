@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom } from '@/shared/tests/mocks'
-import TransactionForm from '../transaction-form.vue'
+import TransactionForm from '../components/transaction-form.vue'
 
 // Mock edge functions
 const mockCreateIncome = vi.fn()

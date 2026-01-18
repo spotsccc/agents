@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
-import WalletBalanceDisplay from '../wallet-balance-display.vue'
+import WalletBalanceDisplay from '../components/wallet-balance-display.vue'
 
 interface Balance {
   id: string

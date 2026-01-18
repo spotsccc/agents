@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { SignUpPage } from '@/pages/auth/sign-up'
 import { SignInPage } from '@/pages/auth/sign-in'
-import WalletsPage from '@/pages/wallets/wallets-page.vue'
-import WalletPage from '@/pages/wallet/wallet-page.vue'
-import WalletTransactionsPage from '@/pages/wallet/transactions/wallet-transactions-page.vue'
+import { WalletsPage } from '@/pages/wallets'
+import { WalletPage } from '@/pages/wallet'
+import { WalletTransactionsPage } from '@/pages/wallet/transactions'
 import AuthLayout from '@/shared/layouts/auth/auth-layout.vue'
-import CreateTransactionPage from '@/pages/wallet/create-transaction/create-transaction-page.vue'
+import { CreateTransactionPage } from '@/pages/wallet/create-transaction'
 import { useUser } from '../../shared/auth/use-user.ts'
 
 export const router = createRouter({

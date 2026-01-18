@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { RouterLinkStub } from '@/shared/tests/mocks'
-import QuickActionButtons from '../quick-action-buttons.vue'
+import QuickActionButtons from '../components/quick-action-buttons.vue'
 
 function renderComponent(walletId: string = 'wallet-123') {
   return renderWithPlugins(QuickActionButtons, {

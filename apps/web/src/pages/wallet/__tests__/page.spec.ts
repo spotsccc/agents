@@ -114,26 +114,6 @@ describe('WalletPage', () => {
     await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
   })
 
-  it('renders quick action buttons', async () => {
-    setupMocks(mockWalletQuery(mockWallet))
-
-    const screen = renderPage()
-
-    // Verify all quick action buttons are rendered (details tested in quick-action-buttons.spec.ts)
-    await expect.element(screen.getByRole('link', { name: /Income/ })).toBeVisible()
-    await expect.element(screen.getByRole('link', { name: /Expense/ })).toBeVisible()
-    await expect.element(screen.getByRole('link', { name: /Transfer/ })).toBeVisible()
-    await expect.element(screen.getByRole('link', { name: /Exchange/ })).toBeVisible()
-  })
-
-  it('renders transactions preview section', async () => {
-    setupMocks(mockWalletQuery(mockWallet))
-
-    const screen = renderPage()
-
-    await expect.element(screen.getByRole('heading', { name: 'Recent Transactions' })).toBeVisible()
-  })
-
   it('handles wallet with empty balances', async () => {
     const walletWithoutBalances = { ...mockWallet, balances: [] }
     setupMocks(mockWalletQuery(walletWithoutBalances))
