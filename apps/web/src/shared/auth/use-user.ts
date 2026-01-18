@@ -91,3 +91,44 @@ export function useSignIn(options?: {
     },
   })
 }
+
+export function useSignInWithOtp() {
+  return useMutation({
+    mutationKey: ['sign_in_otp'],
+    mutationFn: async ({ email }: { email: MaybeRefOrGetter<string> }) => {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: toValue(email),
+      })
+      if (error) {
+        throw error
+      }
+    },
+  })
+}
+
+export function useVerifyOtp() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: ['verify_otp'],
+    mutationFn: async ({
+      email,
+      token,
+    }: {
+      email: MaybeRefOrGetter<string>
+      token: MaybeRefOrGetter<string>
+    }) => {
+      const { error, data } = await supabase.auth.verifyOtp({
+        email: toValue(email),
+        token: toValue(token),
+        type: 'email',
+      })
+      if (error) {
+        throw error
+      }
+      return data
+    },
+    async onSuccess() {
+      await queryClient.invalidateQueries({ queryKey: ['user'] })
+    },
+  })
+}

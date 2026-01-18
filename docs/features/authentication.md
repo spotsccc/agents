@@ -4,7 +4,7 @@
 
 ## Overview
 
-Authentication is handled by Supabase Auth, providing secure user registration, sign-in, and session management.
+Authentication is handled by Supabase Auth, providing secure user registration, sign-in, and session management. The primary authentication method is OTP (One-Time Password) via email, with password-based authentication available as a secondary option.
 
 ## Auth Flow
 
@@ -25,62 +25,140 @@ Authentication is handled by Supabase Auth, providing secure user registration, 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## OTP Authentication (Primary)
+
+OTP authentication is the primary sign-in method. Users receive a 6-digit code via email to verify their identity.
+
+### OTP Sign In Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Step 1: Email Entry         Step 2: OTP Verification         │
+│   ┌──────────────────┐        ┌──────────────────┐             │
+│   │ Enter email      │───────►│ Enter 6-digit    │             │
+│   │ [Send Code]      │  OTP   │ code from email  │             │
+│   └──────────────────┘  sent  │ [Verify]         │             │
+│                               └────────┬─────────┘             │
+│                                        │                        │
+│                                        ▼                        │
+│                               ┌──────────────────┐             │
+│                               │  Authenticated   │             │
+│                               │  → /wallets      │             │
+│                               └──────────────────┘             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Code Reference
+
+```typescript
+// Send OTP to email
+const { mutate: sendOtp, isPending } = useSignInWithOtp()
+
+sendOtp({ email: 'user@example.com' })
+
+// Verify OTP code
+const { mutate: verifyOtp, isPending } = useVerifyOtp()
+
+verifyOtp({
+  email: 'user@example.com',
+  token: '123456'
+})
+```
+
+### OTP Features
+
+| Feature | Description |
+|---------|-------------|
+| Resend Code | Available after 60-second countdown |
+| Change Email | Return to email entry from verification step |
+| Code Length | 6 digits |
+| Code Expiry | Managed by Supabase (typically 1 hour) |
+
 ## Sign Up
 
-New users register at `/auth/sign-up`.
+New users register at `/auth/sign-up` using OTP authentication.
 
 ### Required Fields
 
 | Field | Validation |
 |-------|------------|
 | Email | Valid email format |
-| Password | Minimum 6 characters |
-| Name | Required |
 
 ### Process
 
-1. User submits registration form
-2. Supabase Auth creates user account
-3. User record created in `users` table
-4. User is automatically signed in
-5. Redirect to `/wallets`
+1. User enters email address
+2. Supabase sends OTP code to email
+3. User enters 6-digit verification code
+4. Supabase Auth creates user account (if new)
+5. User is automatically signed in
+6. Redirect to `/wallets`
 
 ### Code Reference
 
 ```typescript
-// useSignUp composable
-const { mutate: signUp, isPending } = useSignUp()
+// Sign up uses the same OTP flow - Supabase auto-creates accounts
+const { mutate: sendOtp } = useSignInWithOtp()
+const { mutate: verifyOtp } = useVerifyOtp()
 
-signUp({
-  email: 'user@example.com',
-  password: 'password123',
-  name: 'John Doe'
+// Step 1: Send code
+sendOtp({ email: 'newuser@example.com' })
+
+// Step 2: Verify and create account
+verifyOtp({
+  email: 'newuser@example.com',
+  token: '123456'
 })
 ```
 
 ## Sign In
 
-Existing users sign in at `/auth/sign-in`.
+Existing users sign in at `/auth/sign-in` with OTP (primary) or password (secondary).
 
-### Required Fields
+### OTP Sign In (Primary)
 
 | Field | Validation |
 |-------|------------|
 | Email | Valid email format |
-| Password | Required |
+| Verification Code | 6 digits |
 
-### Process
+### Password Sign In (Secondary)
 
-1. User submits credentials
-2. Supabase Auth validates credentials
-3. JWT token returned and stored
-4. Redirect to `/wallets`
+| Field | Validation |
+|-------|------------|
+| Email | Valid email format |
+| Password | Minimum 6 characters |
+
+### Process (OTP)
+
+1. User enters email address
+2. Clicks "Send Code"
+3. Supabase sends OTP to email
+4. User enters verification code
+5. Clicks "Verify"
+6. Redirect to `/wallets`
+
+### Process (Password)
+
+1. User clicks "Sign in with password instead"
+2. Enters email and password
+3. Supabase Auth validates credentials
+4. JWT token returned and stored
+5. Redirect to `/wallets`
 
 ### Code Reference
 
 ```typescript
-// useSignIn composable
-const { mutate: signIn, isPending } = useSignIn()
+// OTP sign in (primary)
+const { mutate: sendOtp } = useSignInWithOtp()
+const { mutate: verifyOtp } = useVerifyOtp()
+
+sendOtp({ email: 'user@example.com' })
+verifyOtp({ email: 'user@example.com', token: '123456' })
+
+// Password sign in (secondary)
+const { mutate: signIn } = useSignIn()
 
 signIn({
   email: 'user@example.com',
@@ -205,6 +283,12 @@ if (!user) {
 - Never stored in plain text
 - Minimum length enforced
 
+### OTP Security
+
+- Codes are single-use
+- Codes expire after a set time period
+- Rate limiting prevents brute force attacks
+
 ### Session Security
 
 - JWT tokens with expiration
@@ -224,8 +308,10 @@ Located in `src/shared/auth/`:
 | Composable | Purpose |
 |------------|---------|
 | `useUser` | Get current user (reactive) |
-| `useSignIn` | Sign in mutation |
-| `useSignUp` | Registration mutation |
+| `useSignInWithOtp` | Send OTP code to email |
+| `useVerifyOtp` | Verify OTP code and sign in |
+| `useSignIn` | Password-based sign in |
+| `useSignUp` | Registration mutation (password-based, legacy) |
 | `useLogOut` | Sign out mutation |
 
 ### Query Invalidation
@@ -233,12 +319,11 @@ Located in `src/shared/auth/`:
 Auth mutations automatically invalidate related queries:
 
 ```typescript
-const { mutate: signIn } = useMutation({
-  mutationFn: signInWithEmail,
+const { mutate: verifyOtp } = useMutation({
+  mutationFn: verifyOtpCode,
   onSuccess: () => {
     // Invalidate user-related queries
     queryClient.invalidateQueries({ queryKey: ['user'] })
-    queryClient.invalidateQueries({ queryKey: ['wallets'] })
   }
 })
 ```
@@ -249,20 +334,34 @@ const { mutate: signIn } = useMutation({
 
 `src/pages/auth/sign-in/page.vue`
 
+**OTP Flow (Primary):**
+- Email input
+- "Send Code" button
+- Verification code input (step 2)
+- "Verify" button (step 2)
+- "Change email" link (step 2)
+- "Resend code" with countdown (step 2)
+
+**Password Flow (Secondary):**
+- Toggle: "Sign in with password instead"
 - Email input
 - Password input
-- Sign in button
-- Link to sign up
+- "Sign In" button
+
+**Navigation:**
+- Link to sign up page
 
 ### Sign Up Page
 
 `src/pages/auth/sign-up/page.vue`
 
-- Name input
 - Email input
-- Password input
-- Sign up button
-- Link to sign in
+- "Continue" button
+- Verification code input (step 2)
+- "Verify" button (step 2)
+- "Change email" link (step 2)
+- "Resend code" with countdown (step 2)
+- Link to sign in page
 
 ## Error Handling
 
@@ -271,8 +370,11 @@ Common auth errors:
 | Error | User Message |
 |-------|--------------|
 | Invalid credentials | "Invalid email or password" |
+| Invalid OTP code | "Invalid code. Please try again." |
+| OTP send failed | "Failed to send code. Please try again." |
 | Email already exists | "An account with this email already exists" |
 | Weak password | "Password must be at least 6 characters" |
+| Invalid code length | "Code must be 6 digits" |
 | Network error | "Unable to connect. Please try again." |
 
 ## Related Documentation

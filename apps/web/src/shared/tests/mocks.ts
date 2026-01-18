@@ -28,8 +28,60 @@ export const mockSupabaseFrom = vi.fn(() => ({
   })),
 }))
 
+// ============================================================================
+// Supabase Auth Mocks
+// ============================================================================
+
+export const mockSignInWithOtp = vi.fn(() => Promise.resolve({ error: null }))
+
+export const mockVerifyOtp = vi.fn(() =>
+  Promise.resolve({
+    data: {
+      user: { id: 'test-user-id', email: 'test@example.com' },
+      session: { access_token: 'test-token' },
+    },
+    error: null,
+  })
+)
+
+export const mockSignInWithPassword = vi.fn(() =>
+  Promise.resolve({
+    data: {
+      user: { id: 'test-user-id', email: 'test@example.com' },
+      session: { access_token: 'test-token' },
+    },
+    error: null,
+  })
+)
+
+export const mockSignUp = vi.fn(() =>
+  Promise.resolve({
+    data: {
+      user: { id: 'test-user-id', email: 'test@example.com' },
+      session: { access_token: 'test-token' },
+    },
+    error: null,
+  })
+)
+
+export const mockSignOut = vi.fn(() => Promise.resolve({ error: null }))
+
+export const mockOnAuthStateChange = vi.fn(() => ({
+  data: { subscription: { unsubscribe: vi.fn() } },
+}))
+
+export const mockSupabaseAuth = {
+  signInWithOtp: mockSignInWithOtp,
+  verifyOtp: mockVerifyOtp,
+  signInWithPassword: mockSignInWithPassword,
+  signUp: mockSignUp,
+  signOut: mockSignOut,
+  onAuthStateChange: mockOnAuthStateChange,
+}
+
 export const mockSupabase = {
   from: mockSupabaseFrom,
+  auth: mockSupabaseAuth,
 }
 
 // ============================================================================
