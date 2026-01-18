@@ -47,18 +47,56 @@ apps/web/          # Vue 3 SPA (main application)
 packages/supabase/ # Database schema types + Edge Functions
 ```
 
-### Web App Structure (Feature-Sliced Design)
+### Web App Structure
 
 ```
 src/
-├── app/           # App bootstrap, router, global styles
-├── pages/         # Feature pages (auth/, wallets/, wallet/)
-└── shared/        # Cross-cutting concerns
-    ├── auth/      # Auth composables (useUser, useSignIn, etc.)
-    ├── supabase/  # Supabase client
+├── app/                # App bootstrap, router, global styles
+├── components/         # Reusable components (shared across multiple pages)
+│   └── <component>/
+│       ├── <component>.vue
+│       ├── index.ts
+│       └── __tests__/
+├── pages/              # Page modules
+│   └── <page>/
+│       ├── page.vue              # Main page component (required)
+│       ├── index.ts              # Public exports
+│       ├── components/           # Page-specific components (optional)
+│       │   └── <component>.vue
+│       └── __tests__/
+│           └── *.spec.ts
+└── shared/             # Cross-cutting concerns
+    ├── auth/           # Auth composables (useUser, useSignIn, etc.)
+    ├── supabase/       # Supabase client + edge function wrappers
     ├── components/ui/  # shadcn-vue components
-    └── layouts/   # Layout components
+    ├── layouts/        # Layout components
+    └── tests/          # Test utilities and mocks
 ```
+
+### Component Organization Rules
+
+1. **Page components** (`src/pages/**/page.vue`):
+   - Entry point for each route
+   - Named `page.vue` (not `<feature>-page.vue`)
+   - Exported via `index.ts`
+
+2. **Page-specific components** (`src/pages/**/components/`):
+   - Used only within that page
+   - Not exported from page's `index.ts`
+   - Example: `src/pages/wallet/components/wallet-balance-display.vue`
+
+3. **Reusable components** (`src/components/`):
+   - Shared across multiple pages
+   - Each component in its own folder with `index.ts`
+   - Example: `src/components/transaction-list-item/`
+
+4. **UI primitives** (`src/shared/components/ui/`):
+   - shadcn-vue components only
+   - Added via `npx shadcn-vue@latest add <component>`
+
+**When to move a component to `src/components/`:**
+- When it's needed by 2+ pages
+- When it represents a standalone, reusable UI pattern
 
 ### Key Patterns
 
