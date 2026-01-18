@@ -3,6 +3,15 @@ import { defineComponent, h } from 'vue'
 import { render } from 'vitest-browser-vue'
 import CreateTransactionPage from '../page.vue'
 
+// Simple stub for RouterLink component
+const RouterLinkStub = defineComponent({
+  name: 'RouterLinkStub',
+  props: ['to'],
+  setup(_, { slots }) {
+    return () => h('a', {}, slots.default?.())
+  },
+})
+
 // Capture props passed to TransactionForm
 let capturedProps: { walletId?: string; initialType?: string } = {}
 
@@ -28,7 +37,13 @@ vi.mock('vue-router', () => ({
 
 function renderPage() {
   capturedProps = {}
-  return render(CreateTransactionPage)
+  return render(CreateTransactionPage, {
+    global: {
+      stubs: {
+        RouterLink: RouterLinkStub,
+      },
+    },
+  })
 }
 
 describe('CreateTransactionPage', () => {

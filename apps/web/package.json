@@ -39,6 +39,7 @@
   "devDependencies": {
     "@playwright/test": "^1.53.1",
     "@tsconfig/node22": "^22.0.2",
+    "@types/eslint": "^9.6.1",
     "@types/node": "^22.15.32",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitest/browser": "^4.0.17",
