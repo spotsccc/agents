@@ -115,6 +115,10 @@ watch(type, () => {
   submitError.value = null
 })
 
+function handleMutationError(error: Error) {
+  submitError.value = error.message
+}
+
 const { data: currencies, isPending: currenciesLoading } = useQuery({
   queryKey: ['currencies'],
   queryFn: async () => {
@@ -156,52 +160,44 @@ const invalidateAndNavigate = async () => {
   router.push({ name: 'wallet', params: { id: props.walletId } })
 }
 
-const { mutateAsync: invokeCreateIncome, isPending: isIncomeSubmitting } = useMutation({
+const { mutate: invokeCreateIncome, isPending: isIncomeSubmitting } = useMutation({
   mutationFn: async (params: CreateIncomeTransactionRequest) => {
     const { data, error } = await createIncomeTransaction(params)
     if (error) throw new Error(error.message)
     return data
   },
   onSuccess: invalidateAndNavigate,
-  onError: (error) => {
-    submitError.value = error instanceof Error ? error.message : 'An unexpected error occurred'
-  },
+  onError: handleMutationError,
 })
 
-const { mutateAsync: invokeCreateExpense, isPending: isExpenseSubmitting } = useMutation({
+const { mutate: invokeCreateExpense, isPending: isExpenseSubmitting } = useMutation({
   mutationFn: async (params: CreateExpenseTransactionRequest) => {
     const { data, error } = await createExpenseTransaction(params)
     if (error) throw new Error(error.message)
     return data
   },
   onSuccess: invalidateAndNavigate,
-  onError: (error) => {
-    submitError.value = error instanceof Error ? error.message : 'An unexpected error occurred'
-  },
+  onError: handleMutationError,
 })
 
-const { mutateAsync: invokeCreateExchange, isPending: isExchangeSubmitting } = useMutation({
+const { mutate: invokeCreateExchange, isPending: isExchangeSubmitting } = useMutation({
   mutationFn: async (params: CreateExchangeTransactionRequest) => {
     const { data, error } = await createExchangeTransaction(params)
     if (error) throw new Error(error.message)
     return data
   },
   onSuccess: invalidateAndNavigate,
-  onError: (error) => {
-    submitError.value = error instanceof Error ? error.message : 'An unexpected error occurred'
-  },
+  onError: handleMutationError,
 })
 
-const { mutateAsync: invokeCreateTransfer, isPending: isTransferSubmitting } = useMutation({
+const { mutate: invokeCreateTransfer, isPending: isTransferSubmitting } = useMutation({
   mutationFn: async (params: CreateTransferTransactionRequest) => {
     const { data, error } = await createTransferTransaction(params)
     if (error) throw new Error(error.message)
     return data
   },
   onSuccess: invalidateAndNavigate,
-  onError: (error) => {
-    submitError.value = error instanceof Error ? error.message : 'An unexpected error occurred'
-  },
+  onError: handleMutationError,
 })
 
 const isSubmitting = computed(
@@ -212,7 +208,7 @@ const isSubmitting = computed(
     isTransferSubmitting.value
 )
 
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = handleSubmit((values) => {
   if (!user.value) return
 
   submitError.value = null
@@ -226,11 +222,11 @@ const onSubmit = handleSubmit(async (values) => {
   }
 
   if (values.type === 'income') {
-    await invokeCreateIncome({ ...baseParams, sourceId: values.sourceId! })
+    invokeCreateIncome({ ...baseParams, sourceId: values.sourceId! })
   } else if (values.type === 'expense') {
-    await invokeCreateExpense({ ...baseParams, categoryId: values.categoryId! })
+    invokeCreateExpense({ ...baseParams, categoryId: values.categoryId! })
   } else if (values.type === 'exchange') {
-    await invokeCreateExchange({
+    invokeCreateExchange({
       userId: user.value.id,
       walletId: props.walletId,
       fromCurrency: values.currency,
@@ -240,7 +236,7 @@ const onSubmit = handleSubmit(async (values) => {
       description: values.description,
     })
   } else if (values.type === 'transfer') {
-    await invokeCreateTransfer({
+    invokeCreateTransfer({
       userId: user.value.id,
       fromWalletId: props.walletId,
       toWalletId: values.toWalletId!,

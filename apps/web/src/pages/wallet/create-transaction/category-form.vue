@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { z } from 'zod'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -7,6 +8,8 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useUser } from '@/shared/auth/use-user'
 import { Input } from '@/shared/components/ui/input'
 import Button from '@/shared/components/ui/button/button.vue'
+import { Alert, AlertDescription, AlertTitle } from '@/shared/components/ui/alert'
+import { CircleAlert } from 'lucide-vue-next'
 import type { Tables } from 'supabase/scheme'
 
 type Category = Tables<'categories'>
@@ -33,7 +36,9 @@ const { handleSubmit, errors, defineField } = useForm<FormValues>({
 
 const [name] = defineField('name')
 
-const { mutateAsync, isPending } = useMutation({
+const submitError = ref<string | null>(null)
+
+const { mutate, isPending } = useMutation({
   mutationFn: async (values: FormValues) => {
     if (!user.value) throw new Error('User not authenticated')
 
@@ -47,20 +52,32 @@ const { mutateAsync, isPending } = useMutation({
       .select()
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message)
     return data
   },
   onSuccess: (newCategory) => {
     queryClient.invalidateQueries({ queryKey: ['categories'] })
     emit('created', newCategory)
   },
+  onError: (error) => {
+    submitError.value = error instanceof Error ? error.message : 'An unexpected error occurred'
+  },
 })
 
-const onSubmit = handleSubmit((values) => mutateAsync(values))
+const onSubmit = handleSubmit((values) => {
+  submitError.value = null
+  mutate(values)
+})
 </script>
 
 <template>
   <form @submit="onSubmit" class="flex flex-col gap-4 p-4">
+    <Alert v-if="submitError" variant="destructive">
+      <CircleAlert class="size-4" />
+      <AlertTitle>Error</AlertTitle>
+      <AlertDescription>{{ submitError }}</AlertDescription>
+    </Alert>
+
     <Input
       id="name"
       v-model="name"

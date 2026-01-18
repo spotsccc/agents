@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/vue'
+import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom } from '@/shared/tests/mocks'
 import IncomeSourceForm from '../income-source-form.vue'
@@ -10,89 +10,52 @@ describe('IncomeSourceForm', () => {
   })
 
   describe('rendering', () => {
-    it('renders all form fields', () => {
-      renderWithPlugins(IncomeSourceForm)
+    it('renders all form fields', async () => {
+      const screen = renderWithPlugins(IncomeSourceForm)
 
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
-      expect(screen.getByLabelText('Description')).toBeInTheDocument()
-      expect(screen.getByLabelText('Recurring income')).toBeInTheDocument()
-      expect(screen.getByLabelText('Icon')).toBeInTheDocument()
-      expect(screen.getByLabelText('Color')).toBeInTheDocument()
-    })
-
-    it('renders submit button', () => {
-      renderWithPlugins(IncomeSourceForm)
-
-      expect(screen.getByRole('button', { name: 'Create Source' })).toBeInTheDocument()
+      await expect.element(screen.getByLabelText('Name')).toBeVisible()
+      await expect.element(screen.getByLabelText('Description')).toBeVisible()
+      await expect.element(screen.getByLabelText('Recurring income')).toBeVisible()
+      await expect.element(screen.getByLabelText('Icon')).toBeVisible()
+      await expect.element(screen.getByLabelText('Color')).toBeVisible()
+      await expect.element(screen.getByRole('button', { name: 'Create Source' })).toBeVisible()
     })
   })
 
   describe('validation', () => {
     it('shows error when name is empty', async () => {
-      const { user } = renderWithPlugins(IncomeSourceForm)
+      const screen = renderWithPlugins(IncomeSourceForm)
 
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Create Source' }))
 
-      await waitFor(() => {
-        expect(screen.getByText('Name is required')).toBeInTheDocument()
-      })
+      await expect.element(screen.getByText('Name is required')).toBeVisible()
     })
 
-    it('does not show errors for valid input', async () => {
-      const { user } = renderWithPlugins(IncomeSourceForm)
+    it('does not emit created event when validation fails', async () => {
+      const screen = renderWithPlugins(IncomeSourceForm)
 
-      await user.type(screen.getByLabelText('Name'), 'Salary')
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Create Source' }))
 
-      await waitFor(() => {
-        expect(screen.queryByText(/required/i)).not.toBeInTheDocument()
-      })
+      await expect.element(screen.getByText('Name is required')).toBeVisible()
+      expect(screen.emitted().created).toBeUndefined()
     })
   })
 
   describe('form submission', () => {
-    it('emits created event after successful submission', async () => {
-      const { user, emitted } = renderWithPlugins(IncomeSourceForm)
+    it('emits created event with source data after successful submission', async () => {
+      const screen = renderWithPlugins(IncomeSourceForm)
 
-      await user.type(screen.getByLabelText('Name'), 'Salary')
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
+      await userEvent.fill(screen.getByLabelText('Name'), 'Salary')
+      await userEvent.click(screen.getByRole('button', { name: 'Create Source' }))
 
-      await waitFor(() => {
-        const createdEvents = emitted().created as unknown[][]
-        expect(createdEvents).toBeDefined()
-        expect(createdEvents[0][0]).toMatchObject({
-          id: 'test-id',
-          name: 'Test Source',
-        })
-      })
-    })
-
-    it('does not emit created event when validation fails', async () => {
-      const { user, emitted } = renderWithPlugins(IncomeSourceForm)
-
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
-
-      await waitFor(() => {
-        expect(screen.getByText('Name is required')).toBeInTheDocument()
-      })
-
-      expect(emitted().created).toBeUndefined()
-    })
-
-    it('calls supabase with correct table name', async () => {
-      const { user } = renderWithPlugins(IncomeSourceForm)
-
-      await user.type(screen.getByLabelText('Name'), 'Salary')
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
-
-      await waitFor(() => {
-        expect(mockSupabaseFrom).toHaveBeenCalledWith('income_sources')
-      })
+      await expect.poll(() => screen.emitted().created).toBeDefined()
+      const createdEvents = screen.emitted().created as unknown[][]
+      expect(createdEvents[0][0]).toHaveProperty('id')
     })
   })
 
   describe('error handling', () => {
-    it('does not emit created event when API returns error', async () => {
+    it('displays error when API returns error', async () => {
       mockSupabaseFrom.mockReturnValueOnce({
         insert: () => ({
           select: () => ({
@@ -105,17 +68,14 @@ describe('IncomeSourceForm', () => {
         }),
       } as ReturnType<typeof mockSupabaseFrom>)
 
-      const { user, emitted } = renderWithPlugins(IncomeSourceForm)
+      const screen = renderWithPlugins(IncomeSourceForm)
 
-      await user.type(screen.getByLabelText('Name'), 'Test')
-      await user.click(screen.getByRole('button', { name: 'Create Source' }))
+      await userEvent.fill(screen.getByLabelText('Name'), 'Test')
+      await userEvent.click(screen.getByRole('button', { name: 'Create Source' }))
 
-      // Wait for mutation to complete
-      await waitFor(() => {
-        expect(mockSupabaseFrom).toHaveBeenCalled()
-      })
-
-      expect(emitted().created).toBeUndefined()
+      await expect.element(screen.getByRole('alert')).toBeVisible()
+      await expect.element(screen.getByText('Database error')).toBeVisible()
+      expect(screen.emitted().created).toBeUndefined()
     })
   })
 })

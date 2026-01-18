@@ -1,13 +1,9 @@
-import { vi, afterEach } from 'vitest'
+import { vi } from 'vitest'
 import { ref } from 'vue'
 import { config } from '@vue/test-utils'
-import { cleanup } from '@testing-library/vue'
 import '@testing-library/jest-dom/vitest'
 
-// Cleanup after each test
-afterEach(() => {
-  cleanup()
-})
+// vitest-browser-vue handles cleanup automatically
 
 // Use automock for supabase (uses __mocks__ folder)
 vi.mock('@/shared/supabase')

@@ -1,20 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/vue'
+import { userEvent } from 'vitest/browser'
 import { renderWithPlugins } from '@/shared/tests/utils'
 import { mockSupabaseFrom } from '@/shared/tests/mocks'
 import TransactionForm from '../transaction-form.vue'
-
-/**
- * TransactionForm Unit Tests
- *
- * Note: Some tests for successful submissions and complete form flows are limited
- * because Reka UI Select components don't work well in JSDOM environments.
- * The Select component's model doesn't update when interacting with the native
- * select element in tests.
- *
- * For full integration testing of form submissions with all transaction types,
- * use E2E tests with Playwright.
- */
 
 // Mock edge functions
 const mockCreateIncome = vi.fn()
@@ -93,6 +81,46 @@ function setupMocks() {
   }) as unknown as typeof mockSupabaseFrom)
 }
 
+// Helper to wait for form to be ready and get all comboboxes
+async function waitForFormReady(screen: ReturnType<typeof renderWithPlugins>) {
+  await expect.element(screen.getByText('Transaction type')).toBeVisible()
+}
+
+// Combobox indices vary by transaction type:
+// Expense: [type=0, currency=1, category=2]
+// Income: [type=0, currency=1, source=2]
+// Exchange: [type=0, fromCurrency=1, toCurrency=2]
+// Transfer: [type=0, fromCurrency=1, wallet=2, toCurrency=3]
+const COMBOBOX = {
+  TYPE: 0,
+  CURRENCY: 1,
+  THIRD: 2, // category, source, toCurrency, or destinationWallet
+  FOURTH: 3, // destinationCurrency for transfer
+} as const
+
+async function selectCombobox(
+  screen: ReturnType<typeof renderWithPlugins>,
+  index: number,
+  optionName: string
+) {
+  const combobox = screen.getByRole('combobox').nth(index)
+  await userEvent.click(combobox)
+  await expect.element(screen.getByRole('option', { name: optionName })).toBeVisible()
+  await userEvent.click(screen.getByRole('option', { name: optionName }))
+}
+
+async function selectTransactionType(screen: ReturnType<typeof renderWithPlugins>, type: string) {
+  await waitForFormReady(screen)
+  await selectCombobox(screen, COMBOBOX.TYPE, type)
+}
+
+async function fillAmount(screen: ReturnType<typeof renderWithPlugins>, value: string) {
+  // For exchange/transfer, there are two Amount inputs. Use the first one (Amount to Send)
+  const amountInput = screen.getByLabelText(/Amount/).first()
+  await userEvent.clear(amountInput)
+  await userEvent.fill(amountInput, value)
+}
+
 describe('TransactionForm', () => {
   beforeEach(() => {
     mockSupabaseFrom.mockClear()
@@ -101,205 +129,418 @@ describe('TransactionForm', () => {
     mockCreateExchange.mockClear()
     mockCreateTransfer.mockClear()
     mockPush.mockClear()
+    setupMocks()
   })
 
   describe('rendering', () => {
-    it('shows all base fields', () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+    it('renders common fields for all transaction types', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      expect(screen.getByText('Transaction type')).toBeInTheDocument()
-      expect(screen.getByText('Currency')).toBeInTheDocument()
-      expect(screen.getByLabelText('Amount')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument()
+      await expect.element(screen.getByText('Transaction type')).toBeVisible()
+      await expect.element(screen.getByText('Currency')).toBeVisible()
+      await expect.element(screen.getByLabelText('Amount')).toBeVisible()
+      await expect.element(screen.getByRole('button', { name: 'Create' })).toBeVisible()
     })
 
     it('shows category field for expense type (default)', async () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      // Expense is the default type
-      await waitFor(() => {
-        expect(screen.getByText('Category')).toBeInTheDocument()
-      })
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
     })
 
-    it('has transaction type select with default value', async () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+    it('defaults amount to 0', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      // The hidden native select should have expense as the default value
-      await waitFor(() => {
-        const nativeSelects = document.querySelectorAll('select')
-        // First select is transaction type, should have expense value
-        expect(nativeSelects.length).toBeGreaterThan(0)
-        const firstSelect = nativeSelects[0]
-        // Note: toHaveValue doesn't work when select has no option children,
-        // so we check the attribute directly
-        expect(firstSelect.getAttribute('value')).toBe('expense')
-      })
-    })
-
-    it('shows amount input with default value of 0', () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
-        props: { walletId: 'wallet-1' },
-      })
-
-      const amountInput = screen.getByLabelText('Amount')
-      expect(amountInput).toHaveValue(0)
+      await expect.element(screen.getByLabelText('Amount')).toHaveValue(0)
     })
   })
 
   describe('validation', () => {
-    describe('common fields', () => {
-      it('shows error when amount is not positive', async () => {
-        setupMocks()
-        const { user } = renderWithPlugins(TransactionForm, {
-          props: { walletId: 'wallet-1' },
-        })
-
-        // Wait for component to load
-        await waitFor(() => {
-          expect(screen.getByText('Category')).toBeInTheDocument()
-        })
-
-        // Amount is 0 by default, try to submit
-        await user.click(screen.getByRole('button', { name: 'Create' }))
-
-        await waitFor(() => {
-          expect(screen.getByText('Amount must be positive')).toBeInTheDocument()
-        })
+    it('shows error when amount is not positive', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
       })
+
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Amount must be positive')).toBeVisible()
     })
 
-    describe('expense transaction', () => {
-      it('shows error when category not selected', async () => {
-        setupMocks()
-        const { user } = renderWithPlugins(TransactionForm, {
-          props: { walletId: 'wallet-1' },
-        })
-
-        // Expense is default, fill amount but not category
-        const amountInput = screen.getByLabelText('Amount')
-        await user.clear(amountInput)
-        await user.type(amountInput, '100')
-
-        await user.click(screen.getByRole('button', { name: 'Create' }))
-
-        await waitFor(() => {
-          expect(screen.getByText('Category is required')).toBeInTheDocument()
-        })
+    it('shows error when category not selected for expense', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
       })
 
-      it('shows both validation errors together', async () => {
-        setupMocks()
-        const { user } = renderWithPlugins(TransactionForm, {
-          props: { walletId: 'wallet-1' },
-        })
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await fillAmount(screen, '100')
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-        // Wait for component to load
-        await waitFor(() => {
-          expect(screen.getByText('Category')).toBeInTheDocument()
-        })
+      await expect.element(screen.getByText('Category is required')).toBeVisible()
+    })
 
-        // Try to submit with default values (amount=0, no category)
-        await user.click(screen.getByRole('button', { name: 'Create' }))
-
-        await waitFor(() => {
-          expect(screen.getByText('Amount must be positive')).toBeInTheDocument()
-          expect(screen.getByText('Category is required')).toBeInTheDocument()
-        })
+    it('shows multiple validation errors together', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
       })
+
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Amount must be positive')).toBeVisible()
+      await expect.element(screen.getByText('Category is required')).toBeVisible()
+    })
+
+    it('shows error when income source not selected for income', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Income')
+      // Wait for the Income Source label (not the placeholder text)
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Income source is required')).toBeVisible()
+    })
+
+    it('shows error when target currency not selected for exchange', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Exchange')
+      // Wait for exchange form to render (3 comboboxes)
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Target currency is required')).toBeVisible()
+    })
+
+    it('shows error when amount to receive is not positive for exchange', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Exchange')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'EUR')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Amount to receive must be positive')).toBeVisible()
+    })
+
+    it('shows error when exchanging to the same currency', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Exchange')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'USD')
+
+      // Fill toAmount - use specific label
+      const toAmountInput = screen.getByRole('spinbutton', { name: 'Amount to Receive' })
+      await userEvent.fill(toAmountInput, '90')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Cannot exchange to the same currency')).toBeVisible()
+    })
+
+    it('shows error when destination wallet not selected for transfer', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Transfer')
+      // Wait for transfer form to render (4 comboboxes)
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.FOURTH)).toBeVisible()
+      await fillAmount(screen, '100')
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Destination wallet is required')).toBeVisible()
+    })
+
+    it('shows error when destination currency not selected for transfer', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Transfer')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.FOURTH)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Savings')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Destination currency is required')).toBeVisible()
+    })
+
+    it('shows error when amount to receive is not positive for transfer', async () => {
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Transfer')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.FOURTH)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Savings')
+
+      await selectCombobox(screen, COMBOBOX.FOURTH, 'EUR')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Amount to receive must be positive')).toBeVisible()
     })
   })
 
-  describe('data fetching', () => {
-    it('fetches currencies on mount', async () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+  describe('successful submission', () => {
+    it('creates expense transaction and navigates to wallet', async () => {
+      mockCreateExpense.mockResolvedValueOnce({ data: { id: 'tx-1' }, error: null })
+
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      await waitFor(() => {
-        expect(mockSupabaseFrom).toHaveBeenCalledWith('currencies')
-      })
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await fillAmount(screen, '100')
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Food')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.poll(() => mockCreateExpense.mock.calls.length).toBe(1)
+      expect(mockCreateExpense).toHaveBeenCalledWith(
+        expect.objectContaining({
+          walletId: 'wallet-1',
+          amount: 100,
+          currency: 'USD',
+          categoryId: 'cat-1',
+        })
+      )
+      await expect.poll(() => mockPush.mock.calls.length).toBe(1)
+      expect(mockPush).toHaveBeenCalledWith({ name: 'wallet', params: { id: 'wallet-1' } })
     })
 
-    it('fetches wallets on mount', async () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+    it('creates income transaction and navigates to wallet', async () => {
+      mockCreateIncome.mockResolvedValueOnce({ data: { id: 'tx-1' }, error: null })
+
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      await waitFor(() => {
-        expect(mockSupabaseFrom).toHaveBeenCalledWith('wallets')
-      })
+      await selectTransactionType(screen, 'Income')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '500')
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Salary')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.poll(() => mockCreateIncome.mock.calls.length).toBe(1)
+      expect(mockCreateIncome).toHaveBeenCalledWith(
+        expect.objectContaining({
+          walletId: 'wallet-1',
+          amount: 500,
+          currency: 'USD',
+          sourceId: 'src-1',
+        })
+      )
+      await expect.poll(() => mockPush.mock.calls.length).toBe(1)
     })
 
-    it('fetches categories on mount for expense type', async () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+    it('creates exchange transaction and navigates to wallet', async () => {
+      mockCreateExchange.mockResolvedValueOnce({ data: { id: 'tx-1' }, error: null })
+
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      await waitFor(() => {
-        expect(mockSupabaseFrom).toHaveBeenCalledWith('categories')
+      await selectTransactionType(screen, 'Exchange')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+      await selectCombobox(screen, COMBOBOX.THIRD, 'EUR')
+
+      const toAmountInput = screen.getByRole('spinbutton', { name: 'Amount to Receive' })
+      await userEvent.fill(toAmountInput, '90')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.poll(() => mockCreateExchange.mock.calls.length).toBe(1)
+      expect(mockCreateExchange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          walletId: 'wallet-1',
+          fromCurrency: 'USD',
+          toCurrency: 'EUR',
+          fromAmount: 100,
+          toAmount: 90,
+        })
+      )
+      await expect.poll(() => mockPush.mock.calls.length).toBe(1)
+    })
+
+    it('creates transfer transaction and navigates to wallet', async () => {
+      mockCreateTransfer.mockResolvedValueOnce({ data: { id: 'tx-1' }, error: null })
+
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
       })
+
+      await selectTransactionType(screen, 'Transfer')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.FOURTH)).toBeVisible()
+      await fillAmount(screen, '200')
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Savings')
+      await selectCombobox(screen, COMBOBOX.FOURTH, 'EUR')
+
+      const toAmountInput = screen.getByRole('spinbutton', { name: 'Amount to Receive' })
+      await userEvent.fill(toAmountInput, '180')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.poll(() => mockCreateTransfer.mock.calls.length).toBe(1)
+      expect(mockCreateTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fromWalletId: 'wallet-1',
+          toWalletId: 'wallet-2',
+          fromCurrency: 'USD',
+          toCurrency: 'EUR',
+          fromAmount: 200,
+          toAmount: 180,
+        })
+      )
+      await expect.poll(() => mockPush.mock.calls.length).toBe(1)
     })
   })
 
-  describe('edge functions are properly mocked', () => {
-    it('has mocked createExpenseTransaction', () => {
-      expect(mockCreateExpense).toBeDefined()
-      expect(vi.isMockFunction(mockCreateExpense)).toBe(true)
-    })
+  describe('error handling', () => {
+    it('displays error when expense creation fails', async () => {
+      mockCreateExpense.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Insufficient funds' },
+      })
 
-    it('has mocked createIncomeTransaction', () => {
-      expect(mockCreateIncome).toBeDefined()
-      expect(vi.isMockFunction(mockCreateIncome)).toBe(true)
-    })
-
-    it('has mocked createExchangeTransaction', () => {
-      expect(mockCreateExchange).toBeDefined()
-      expect(vi.isMockFunction(mockCreateExchange)).toBe(true)
-    })
-
-    it('has mocked createTransferTransaction', () => {
-      expect(mockCreateTransfer).toBeDefined()
-      expect(vi.isMockFunction(mockCreateTransfer)).toBe(true)
-    })
-
-    it('has mocked router push', () => {
-      expect(mockPush).toBeDefined()
-      expect(vi.isMockFunction(mockPush)).toBe(true)
-    })
-  })
-
-  describe('submit button', () => {
-    it('is enabled by default', () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      const submitButton = screen.getByRole('button', { name: 'Create' })
-      expect(submitButton).not.toBeDisabled()
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Food')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Insufficient funds')).toBeVisible()
+      await expect.element(screen.getByText('Error')).toBeVisible()
     })
 
-    it('has correct default text', () => {
-      setupMocks()
-      renderWithPlugins(TransactionForm, {
+    it('displays error when income creation fails', async () => {
+      mockCreateIncome.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Invalid income source' },
+      })
+
+      const screen = renderWithPlugins(TransactionForm, {
         props: { walletId: 'wallet-1' },
       })
 
-      expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument()
+      await selectTransactionType(screen, 'Income')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Salary')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Invalid income source')).toBeVisible()
+    })
+
+    it('displays error when exchange creation fails', async () => {
+      mockCreateExchange.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Exchange rate unavailable' },
+      })
+
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Exchange')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.THIRD)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'EUR')
+
+      const toAmountInput = screen.getByRole('spinbutton', { name: 'Amount to Receive' })
+      await userEvent.fill(toAmountInput, '90')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Exchange rate unavailable')).toBeVisible()
+    })
+
+    it('displays error when transfer creation fails', async () => {
+      mockCreateTransfer.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Wallet not found' },
+      })
+
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await selectTransactionType(screen, 'Transfer')
+      await expect.element(screen.getByRole('combobox').nth(COMBOBOX.FOURTH)).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Savings')
+
+      await selectCombobox(screen, COMBOBOX.FOURTH, 'EUR')
+
+      const toAmountInput = screen.getByRole('spinbutton', { name: 'Amount to Receive' })
+      await userEvent.fill(toAmountInput, '90')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Wallet not found')).toBeVisible()
+    })
+
+    it('clears error when transaction type changes', async () => {
+      mockCreateExpense.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Some error' },
+      })
+
+      const screen = renderWithPlugins(TransactionForm, {
+        props: { walletId: 'wallet-1' },
+      })
+
+      await expect.element(screen.getByText('Category', { exact: true })).toBeVisible()
+      await fillAmount(screen, '100')
+
+      await selectCombobox(screen, COMBOBOX.THIRD, 'Food')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+      await expect.element(screen.getByText('Some error')).toBeVisible()
+
+      await selectCombobox(screen, COMBOBOX.TYPE, 'Income')
+
+      await expect.element(screen.getByText('Some error')).not.toBeInTheDocument()
     })
   })
 })
