@@ -31,6 +31,7 @@ coverage
 
 test-results/
 playwright-report/
+__screenshots__/
 
 *storybook.log
 storybook-static
