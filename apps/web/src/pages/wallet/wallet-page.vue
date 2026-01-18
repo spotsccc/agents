@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
+import { Wallet } from 'lucide-vue-next'
 import { supabase } from '@/shared/supabase'
 import { Button } from '@/shared/components/ui/button'
+import { Skeleton } from '@/shared/components/ui/skeleton'
 import TransactionsListPreview from './transactions-list-preview.vue'
 import WalletBalanceDisplay from './wallet-balance-display.vue'
 
@@ -16,17 +19,17 @@ const wallet = useQuery({
       .from('wallets')
       .select(
         `
-      id,
-      name,
-      description,
-      balances:wallet_balances (
         id,
-        balance,
-        currency_code
+        name,
+        description,
+        balances:wallet_balances (
+          id,
+          balance,
+          currency_code
+        )
+        `
       )
-      `
-      )
-      .eq('id', route.params.id as string)
+      .eq('id', walletId)
       .single()
 
     if (res.error) {
@@ -36,23 +39,43 @@ const wallet = useQuery({
     return res.data
   },
 })
+
+const walletData = computed(() => wallet.data.value)
 </script>
 
 <template>
-  <p v-if="wallet.isPending.value">loading</p>
-  <p v-else-if="wallet.isError.value">{{ wallet.error.value }}</p>
-  <template v-else>
-    <div class="flex items-center gap-2">
-      <span class="text-sm text-muted-foreground">Balances:</span>
-      <WalletBalanceDisplay :balances="wallet.data.value!.balances" />
-    </div>
-    <div class="mt-4">
+  <div>
+    <header class="mb-6">
+      <div v-if="wallet.isPending.value" class="flex items-center gap-3">
+        <Skeleton class="h-8 w-8 rounded-lg" />
+        <div class="space-y-1">
+          <Skeleton class="h-5 w-32" />
+          <Skeleton class="h-4 w-48" />
+        </div>
+      </div>
+      <div v-else-if="wallet.isError.value" class="text-destructive">Failed to load wallet</div>
+      <div v-else class="flex items-center gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Wallet class="h-4 w-4 text-primary" />
+        </div>
+        <div class="min-w-0">
+          <h1 class="truncate text-lg font-semibold leading-tight">
+            {{ walletData?.name }}
+          </h1>
+          <div class="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <WalletBalanceDisplay :balances="walletData?.balances ?? []" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <template v-if="walletData">
       <Button as-child>
         <RouterLink :to="`/wallets/${walletId}/transactions/create`">
           Create new transaction
         </RouterLink>
       </Button>
-    </div>
-    <TransactionsListPreview :wallet-id="walletId" class="mt-6" />
-  </template>
+      <TransactionsListPreview :wallet-id="walletId" class="mt-6" />
+    </template>
+  </div>
 </template>
