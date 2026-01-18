@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { supabase } from '@/shared/supabase'
 import { Button } from '@/shared/components/ui/button'
 import TransactionsListPreview from './transactions-list-preview.vue'
+import WalletBalanceDisplay from './wallet-balance-display.vue'
 
 const route = useRoute()
 const walletId = route.params.id as string
@@ -41,11 +42,9 @@ const wallet = useQuery({
   <p v-if="wallet.isPending.value">loading</p>
   <p v-else-if="wallet.isError.value">{{ wallet.error.value }}</p>
   <template v-else>
-    <p>Balances</p>
-    <div class="flex">
-      <div v-for="balance in wallet.data.value!.balances" :key="balance.id">
-        {{ balance.balance }} {{ balance.currency_code }}
-      </div>
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted-foreground">Balances:</span>
+      <WalletBalanceDisplay :balances="wallet.data.value!.balances" />
     </div>
     <div class="mt-4">
       <Button as-child>
