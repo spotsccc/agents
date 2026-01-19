@@ -42,6 +42,7 @@
   "scripts": {
     "gen:types": "supabase gen types typescript --local > scheme/index.ts",
     "functions:serve": "supabase functions serve --env-file .env",
-    "functions:deploy": "supabase functions deploy"
+    "functions:deploy": "supabase functions deploy",
+    "db:push": "supabase db push"
   }
 }
