@@ -33,6 +33,9 @@ importers:
       '@tanstack/vue-query':
         specifier: ^5.85.5
         version: 5.87.1(vue@3.5.21)
+      '@tanstack/vue-virtual':
+        specifier: ^3.13.18
+        version: 3.13.18(vue@3.5.21)
       '@vee-validate/zod':
         specifier: ^4.15.1
         version: 4.15.1(vue@3.5.21)(zod@4.1.5)
@@ -1366,8 +1369,8 @@ packages:
     resolution: {integrity: sha512-HOFHVvhOCprrWvtccSzc7+RNqpnLlZ5R6lTmngb8aq7b4rc2/jDT0w+vLdQ4lD9bNtQ+/A4GsFXy030Gk4ollA==}
     dev: false
 
-  /@tanstack/virtual-core@3.13.12:
-    resolution: {integrity: sha512-1YBOJfRHV4sXUmWsFSf5rQor4Ss82G8dQWLRbnk3GA4jeP8hQt1hxXh0tmflpC0dz3VgEv/1+qwPyLeWkQuPFA==}
+  /@tanstack/virtual-core@3.13.18:
+    resolution: {integrity: sha512-Mx86Hqu1k39icq2Zusq+Ey2J6dDWTjDvEv43PJtRCoEYTLyfaPnxIQ6iy7YAOK0NV/qOEmZQ/uCufrppZxTgcg==}
     dev: false
 
   /@tanstack/vue-query@5.87.1(vue@3.5.21):
@@ -1386,12 +1389,12 @@ packages:
       vue-demi: 0.14.10(vue@3.5.21)
     dev: false
 
-  /@tanstack/vue-virtual@3.13.12(vue@3.5.21):
-    resolution: {integrity: sha512-vhF7kEU9EXWXh+HdAwKJ2m3xaOnTTmgcdXcF2pim8g4GvI7eRrk2YRuV5nUlZnd/NbCIX4/Ja2OZu5EjJL06Ww==}
+  /@tanstack/vue-virtual@3.13.18(vue@3.5.21):
+    resolution: {integrity: sha512-6pT8HdHtTU5Z+t906cGdCroUNA5wHjFXsNss9gwk7QAr1VNZtz9IQCs2Nhx0gABK48c+OocHl2As+TMg8+Hy4A==}
     peerDependencies:
       vue: ^2.7.0 || ^3.0.0
     dependencies:
-      '@tanstack/virtual-core': 3.13.12
+      '@tanstack/virtual-core': 3.13.18
       vue: 3.5.21(typescript@5.9.2)
     dev: false
 
@@ -3744,7 +3747,7 @@ packages:
       '@floating-ui/vue': 1.1.9(vue@3.5.21)
       '@internationalized/date': 3.9.0
       '@internationalized/number': 3.6.5
-      '@tanstack/vue-virtual': 3.13.12(vue@3.5.21)
+      '@tanstack/vue-virtual': 3.13.18(vue@3.5.21)
       '@vueuse/core': 12.8.2(typescript@5.9.2)
       '@vueuse/shared': 12.8.2(typescript@5.9.2)
       aria-hidden: 1.2.6

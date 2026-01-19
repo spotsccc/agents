@@ -176,7 +176,7 @@ describe('OnboardingPage', () => {
       await expect.element(finishButton).toBeVisible()
 
       await vi.waitFor(async () => {
-        const element = await finishButton.element()
+        const element = finishButton.element()
         expect(element).not.toBeDisabled()
       })
 
