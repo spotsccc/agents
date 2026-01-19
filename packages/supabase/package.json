@@ -23,6 +23,10 @@
     "./create-transfer-transaction": {
       "types": "./functions/create-transfer-transaction/contract.ts",
       "import": "./functions/create-transfer-transaction/contract.ts"
+    },
+    "./setup-wallet-with-balance": {
+      "types": "./functions/setup-wallet-with-balance/contract.ts",
+      "import": "./functions/setup-wallet-with-balance/contract.ts"
     }
   },
   "typesVersions": {
@@ -31,7 +35,8 @@
       "create-income-transaction": ["./functions/create-income-transaction/contract.ts"],
       "create-expense-transaction": ["./functions/create-expense-transaction/contract.ts"],
       "create-exchange-transaction": ["./functions/create-exchange-transaction/contract.ts"],
-      "create-transfer-transaction": ["./functions/create-transfer-transaction/contract.ts"]
+      "create-transfer-transaction": ["./functions/create-transfer-transaction/contract.ts"],
+      "setup-wallet-with-balance": ["./functions/setup-wallet-with-balance/contract.ts"]
     }
   },
   "files": [

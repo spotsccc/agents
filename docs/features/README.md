@@ -7,6 +7,7 @@
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
 | Authentication | User registration and sign-in | [Authentication](./authentication.md) |
+| Onboarding | New user setup flow | [Onboarding](./onboarding.md) |
 | Wallets | Create and manage wallets | [Wallets](./wallets.md) |
 | Transactions | Track income, expenses, transfers, exchanges | [Transactions](./transactions.md) |
 
@@ -21,6 +22,16 @@ Secure user authentication via Supabase Auth:
 - Route protection
 
 → [Read more](./authentication.md)
+
+### Onboarding
+
+New user setup flow:
+- Guides users to create their first wallets
+- Supports multiple currency balances per wallet
+- Required before accessing the main application
+- Auto-redirect based on `onboarding_finished` status
+
+→ [Read more](./onboarding.md)
 
 ### Wallets
 
@@ -95,6 +106,7 @@ Four transaction types for complete financial tracking:
 |-------|------|---------|
 | `/auth/sign-in` | Sign In | [Authentication](./authentication.md) |
 | `/auth/sign-up` | Sign Up | [Authentication](./authentication.md) |
+| `/onboarding` | New User Setup | [Onboarding](./onboarding.md) |
 | `/wallets` | Wallets List | [Wallets](./wallets.md) |
 | `/wallets/:id` | Wallet Details | [Wallets](./wallets.md#wallet-details) |
 | `/wallets/:id/transactions` | Transaction History | [Transactions](./transactions.md) |

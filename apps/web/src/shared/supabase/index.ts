@@ -14,3 +14,6 @@ export type InsertWallet = TablesInsert<'wallets'>
 export type Transaction = Tables<'transactions'> & {
   entries: Tables<'transaction_entries'>[]
 }
+
+// User settings types
+export type UserSettings = Tables<'user_settings'>
