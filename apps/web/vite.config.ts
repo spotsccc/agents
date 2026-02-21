@@ -12,7 +12,7 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     svgLoader(),
-    vueDevTools(),
+    process.env.NODE_ENV !== 'production' && vueDevTools(),
   ],
   server: {
     port: 1234,

@@ -1,8 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database, Tables, TablesInsert } from 'supabase/scheme'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY as string | undefined
+
+if (!supabaseUrl || !supabaseKey) {
+  const msg =
+    'Missing VITE_SUPABASE_URL or VITE_SUPABASE_KEY environment variables. ' +
+    'Make sure they are set in your .env file or hosting environment at build time.'
+  document.getElementById('app')!.textContent = msg
+  throw new Error(msg)
+}
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseKey)
 
