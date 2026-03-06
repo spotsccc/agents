@@ -1,285 +1,92 @@
-# Database Schema
+# Архитектура данных
 
-[← Backend](./backend.md) | [Back to Architecture](./README.md)
+[← Бэкенд](./backend.md) | [Назад к архитектуре](./README.md)
 
-## Overview
+## Роль слоя
 
-The application uses PostgreSQL via Supabase with Row Level Security (RLS) for data isolation.
+PostgreSQL используется как источник истины для прикладного состояния. Основная задача слоя данных — гарантировать изоляцию, целостность и предсказуемость изменений при конкурентной нагрузке.
 
-## Entity Relationship Diagram
+## Паттерны моделирования
 
-```
-┌─────────────┐
-│   users     │
-├─────────────┤
-│ id (PK)     │
-│ name        │
-│ email       │
-│ avatar_url  │
-└──────┬──────┘
-       │
-       │ 1:N
-       ▼
-┌─────────────────┐         ┌──────────────────┐
-│    wallets      │         │   currencies     │
-├─────────────────┤         ├──────────────────┤
-│ id (PK)         │    ┌───►│ code (PK)        │
-│ user_id (FK)    │    │    │ name             │
-│ name            │    │    │ symbol           │
-│ description     │    │    │ decimals         │
-│ type            │    │    └──────────────────┘
-│ primary_currency├────┘
-└────────┬────────┘
-         │
-         │ 1:N
-         ▼
-┌─────────────────────┐
-│  wallet_balances    │
-├─────────────────────┤
-│ id (PK)             │
-│ wallet_id (FK)      │
-│ currency_code (FK)  │
-│ balance             │
-└─────────────────────┘
+### Aggregate + Entries
 
-┌─────────────────┐         ┌───────────────────────┐
-│  transactions   │         │  transaction_entries  │
-├─────────────────┤         ├───────────────────────┤
-│ id (PK)         │◄───────┐│ id (PK)               │
-│ user_id (FK)    │    1:N ││ transaction_id (FK)   │
-│ type            │        └│ wallet_id (FK)        │
-│ date            │         │ currency_code (FK)    │
-│ description     │         │ amount                │
-└─────────────────┘         │ balance_after         │
-                            │ category_id (FK)      │
-                            │ source_id (FK)        │
-                            └───────────────────────┘
+Для операций, где важно хранить историю изменений, используется паттерн "заголовок операции + детальные записи". Это обеспечивает:
+- трассируемость;
+- аудит;
+- возможность восстановления производных представлений.
 
-┌─────────────────┐         ┌─────────────────────┐
-│   categories    │         │   income_sources    │
-├─────────────────┤         ├─────────────────────┤
-│ id (PK)         │         │ id (PK)             │
-│ user_id (FK)    │         │ user_id (FK)        │
-│ name            │         │ name                │
-│ type            │         │ description         │
-└─────────────────┘         │ icon                │
-                            │ color               │
-                            │ is_active           │
-                            │ is_recurring        │
-                            └─────────────────────┘
-```
+### Reference Data
 
-## Tables
+Справочные сущности отделяются от пользовательских данных. Это упрощает валидацию входа и снижает дублирование значений.
 
-### users
+### Extensible Metadata
 
-Stores user profile information (synced from Supabase Auth).
+Для расширений используется `jsonb` только как дополнение к стабильным колонкам, а не как замена нормализованной схемы.
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `name` | text | No | Display name |
-| `email` | text | Yes | Email address |
-| `avatar_url` | text | Yes | Profile picture URL |
-| `created_at` | timestamp | No | Account creation time |
+## Паттерны целостности
 
-### wallets
+### Constraints First
 
-User's financial accounts. See [Wallets Feature](../features/wallets.md).
+Бизнес-инварианты, которые можно выразить на уровне БД, закрепляются ограничениями: `NOT NULL`, `CHECK`, `UNIQUE`, `FK`.
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `user_id` | uuid | Yes | Owner (FK → users) |
-| `name` | text | No | Wallet name |
-| `description` | text | Yes | Optional description |
-| `type` | text | No | Wallet type (default: 'personal') |
-| `primary_currency` | text | Yes | Main currency (FK → currencies) |
-| `metadata` | jsonb | Yes | Custom data |
-| `settings` | jsonb | Yes | Wallet settings |
-| `created_at` | timestamp | No | Creation time |
-| `updated_at` | timestamp | No | Last update time |
-| `deleted_at` | timestamp | Yes | Soft delete timestamp |
+### Transactional Consistency
 
-### wallet_balances
+Критичные изменения выполняются в транзакции. Если операция затрагивает взаимозависимые записи, они должны изменяться атомарно.
 
-Tracks balance per currency for each wallet. See [Multi-Currency Support](../features/wallets.md#multi-currency-support).
+### Concurrency Safety
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `wallet_id` | uuid | No | FK → wallets |
-| `currency_code` | text | No | FK → currencies |
-| `balance` | numeric | No | Current balance |
-| `created_at` | timestamp | No | Creation time |
-| `updated_at` | timestamp | No | Last update time |
+Для горячих записей используется блокировка на время транзакции и/или оптимистический контроль версии.
 
-**Constraints:**
-- Unique: `(wallet_id, currency_code)` — One balance per currency per wallet
+## Паттерны изоляции доступа
 
-### transactions
+### Tenant Isolation через RLS
 
-Transaction header. See [Transactions Feature](../features/transactions.md).
+RLS-политики задают пользовательскую область видимости по умолчанию. Даже при ошибке в прикладном коде запрос не должен выйти за пределы tenant-контекста.
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `user_id` | uuid | No | Creator (FK → users) |
-| `type` | text | No | 'income' \| 'expense' \| 'transfer' \| 'exchange' |
-| `date` | date | No | Transaction date |
-| `description` | text | Yes | Optional description |
-| `created_at` | timestamp | No | Creation time |
-| `updated_at` | timestamp | No | Last update time |
-| `deleted_at` | timestamp | Yes | Soft delete timestamp |
+### Минимально необходимые привилегии
 
-### transaction_entries
+Сервисные роли используются только в ограниченных серверных сценариях. Клиентский доступ всегда должен работать в пользовательском контексте и под RLS.
 
-Individual entries within a transaction. A transaction can have 1-2 entries:
-- **Income/Expense**: 1 entry (credit or debit)
-- **Transfer/Exchange**: 2 entries (debit from source, credit to destination)
+## Паттерны запросов и производительности
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `transaction_id` | uuid | No | FK → transactions |
-| `wallet_id` | uuid | No | Affected wallet (FK → wallets) |
-| `currency_code` | text | No | FK → currencies |
-| `amount` | numeric | No | Amount (positive or negative) |
-| `balance_after` | numeric | No | Balance after this entry |
-| `category_id` | uuid | Yes | FK → categories (for expense) |
-| `source_id` | uuid | Yes | FK → income_sources (for income) |
-| `notes` | text | Yes | Additional notes |
-| `metadata` | jsonb | Yes | Custom data |
-| `created_at` | timestamp | No | Creation time |
+### Index by Access Pattern
 
-**Amount sign convention:**
-- Positive: Money coming in (income, transfer/exchange credit)
-- Negative: Money going out (expense, transfer/exchange debit)
+Индексы проектируются от реальных шаблонов чтения/фильтрации/сортировки, а не "на всякий случай".
 
-### categories
+### Read/Write Separation (логическая)
 
-Expense categories. See [Categories](../features/transactions.md#categories).
+Пути записи оптимизируются под консистентность, а пути чтения — под доступность и скорость (кэш, материализация, предрасчёт при необходимости).
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `user_id` | uuid | No | Owner (FK → users) |
-| `name` | text | No | Category name |
-| `type` | text | Yes | Category type |
+### Pagination by Cursor
 
-### income_sources
+Для растущих наборов данных предпочтительна курсорная пагинация; offset-пагинация применяется только для коротких списков.
 
-Income origins. See [Income Sources](../features/transactions.md#income-sources).
+## Эволюция схемы
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `user_id` | uuid | No | Owner (FK → users) |
-| `name` | text | No | Source name |
-| `description` | text | Yes | Description |
-| `icon` | text | Yes | Icon identifier |
-| `color` | text | Yes | Color (hex) |
-| `is_active` | boolean | No | Active status |
-| `is_recurring` | boolean | No | Recurring income flag |
-| `metadata` | jsonb | Yes | Custom data |
-| `created_at` | timestamp | No | Creation time |
-| `updated_at` | timestamp | No | Last update time |
-| `deleted_at` | timestamp | Yes | Soft delete timestamp |
+### Forward-Only migrations
 
-### currencies
+Схема изменяется только миграциями вперёд. Откат достигается новой компенсирующей миграцией, а не ручным редактированием production-схемы.
 
-Supported currencies.
+### Expand -> Migrate -> Contract
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `code` | text | No | Primary key (ISO 4217: USD, EUR, etc.) |
-| `name` | text | No | Full name (US Dollar, Euro) |
-| `symbol` | text | Yes | Symbol ($, €, £) |
-| `numeric_code` | integer | Yes | ISO 4217 numeric code |
-| `decimals` | integer | No | Decimal places (default: 2) |
-| `type` | text | No | 'fiat' \| 'crypto' |
-| `active` | boolean | No | Available for use |
-| `metadata` | jsonb | Yes | Custom data |
-| `created_at` | timestamp | No | Creation time |
-| `updated_at` | timestamp | No | Last update time |
+Несовместимые изменения выполняются в три шага:
+1. `expand` — добавить новую схему, сохранив совместимость;
+2. `migrate` — перевести чтение/запись;
+3. `contract` — удалить устаревшие элементы.
 
-### exchange_rates
+### Schema as Code
 
-Currency exchange rates (for reference).
+DDL хранится в репозитории и проходит code review, как и любой прикладной код.
 
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `id` | uuid | No | Primary key |
-| `base_currency` | text | No | Base currency code |
-| `quote_currency` | text | No | Quote currency code |
-| `rate` | numeric | No | Exchange rate |
-| `created_at` | timestamp | Yes | Rate timestamp |
+## Наблюдаемость и эксплуатация
 
-## Row Level Security
+- План выполнения запросов проверяется через `EXPLAIN (ANALYZE, BUFFERS)` для критичных путей.
+- Медленные запросы и частые блокировки мониторятся отдельно.
+- Любая оптимизация фиксируется рядом с миграцией или в ADR, чтобы сохранялся контекст решения.
 
-All tables have RLS policies ensuring users can only access their own data:
+## Практические артефакты в репозитории
 
-```sql
--- Example: wallets table policy
-CREATE POLICY "Users can only access own wallets"
-ON wallets
-FOR ALL
-USING (user_id = auth.uid());
+- Миграции схемы: `packages/supabase/migrations/`
+- Генерируемые типы схемы: `packages/supabase/scheme/`
 
--- Example: transactions policy
-CREATE POLICY "Users can only access own transactions"
-ON transactions
-FOR ALL
-USING (user_id = auth.uid());
-```
-
-**Security model:**
-- Users cannot see other users' wallets or transactions
-- Categories and income sources are user-scoped
-- Edge Functions use `service_role` for cross-table operations
-
-## Soft Deletes
-
-Tables with `deleted_at` column support soft deletes:
-- `wallets`
-- `transactions`
-- `income_sources`
-
-**Query pattern:**
-```sql
-SELECT * FROM wallets
-WHERE user_id = $1
-  AND deleted_at IS NULL;
-```
-
-## TypeScript Types
-
-Database types are generated in `packages/supabase/scheme/`:
-
-```typescript
-// Generated from database schema
-export type Wallet = {
-  id: string
-  user_id: string | null
-  name: string
-  description: string | null
-  type: string
-  primary_currency: string | null
-  // ...
-}
-
-export type Transaction = {
-  id: string
-  user_id: string
-  type: 'income' | 'expense' | 'transfer' | 'exchange'
-  date: string
-  description: string | null
-  // ...
-}
-```
-
-## Related Documentation
-
-- [Backend Architecture](./backend.md) — Edge Functions and data access
-- [Wallets Feature](../features/wallets.md) — Wallet management
-- [Transactions Feature](../features/transactions.md) — Transaction types
+Эти артефакты — реализация паттернов, описанных в этом документе.

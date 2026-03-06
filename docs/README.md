@@ -1,77 +1,84 @@
-# Wallet Manager Documentation
+# Документация проекта Agents
 
-> Multi-currency wallet and transaction management application
+> Agents — проект, который развивается как альтернатива OpenClaw: платформа для работы с AI-агентами, автоматизации инженерных сценариев и интеграции с внешними сервисами.
 
-## Quick Links
+## Быстрые ссылки
 
-| Section | Description |
-|---------|-------------|
-| [Project Overview](./overview.md) | Goals, problems solved, and key features |
-| [Architecture](./architecture/README.md) | Technical architecture and design decisions |
-| [Features](./features/README.md) | Detailed feature documentation |
+| Раздел | Описание |
+|--------|----------|
+| [Обзор проекта](./overview.md) | Новое позиционирование, цели и приоритеты развития |
+| [Архитектура](./architecture/README.md) | Техническая архитектура и ключевые решения |
+| [Функциональность](./features/README.md) | Текущая прикладная функциональность веб-приложения |
+| [Бэклог: Calendar](./backlog/calendar/README.md) | Сценарии управления календарём через бота |
+| [Бэклог: Briefing](./backlog/briefing/README.md) | Утренние/вечерние брифинги и дневник |
+| [Бэклог: Task Tracker](./backlog/task-tracker/README.md) | Управление задачами и интеграция в брифинги |
 
-## Documentation Structure
+## Структура документации
 
-```
+```text
 docs/
-├── README.md                    # You are here
-├── overview.md                  # Project goals and value proposition
+├── README.md                           # Вы здесь
+├── overview.md                         # Обновлённое описание и цели проекта
 ├── architecture/
-│   ├── README.md                # Architecture overview
-│   ├── frontend.md              # Vue 3 + TypeScript frontend
-│   ├── backend.md               # Supabase Edge Functions
-│   └── database.md              # PostgreSQL schema
-└── features/
-    ├── README.md                # Features overview
-    ├── authentication.md        # Auth system
-    ├── wallets.md               # Wallet management
-    └── transactions.md          # Transaction types
+│   ├── README.md                       # Обзор архитектуры
+│   ├── frontend.md                     # Архитектура web-приложения
+│   ├── backend.md                      # Edge Functions и серверная логика
+│   └── database.md                     # Схема PostgreSQL и RLS
+├── features/
+│   ├── README.md                       # Обзор продуктовых разделов
+│   ├── authentication.md               # Аутентификация
+│   ├── onboarding.md                   # Онбординг
+│   ├── wallets.md                      # Управление кошельками
+│   └── transactions.md                 # Транзакции
+└── backlog/
+    ├── calendar/                       # Telegram-бот + Google Calendar
+    ├── briefing/                       # Брифинги и дневник
+    ├── task-tracker/                   # Трекер задач
+    └── operations/                     # Production readiness
 ```
 
-## Getting Started
+## Быстрый старт
 
-### Prerequisites
+### Предварительные требования
 
 - Node.js 18+
 - pnpm 8+
-- Docker (for local Supabase)
+- Docker (для локального Supabase)
 
-### Quick Start
+### Запуск проекта
 
 ```bash
-# Install dependencies
+# Установка зависимостей
 pnpm install
 
-# Start local Supabase
+# Запуск локального Supabase
 pnpm supabase:start
 
-# Run development server
+# Запуск разработки
 pnpm dev
 ```
 
-See [Architecture > Frontend](./architecture/frontend.md#development-commands) for all available commands.
+Полный список команд и архитектурные принципы frontend: [Архитектура Frontend](./architecture/frontend.md).
 
-## Tech Stack Overview
+## Кратко о технологическом стеке
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | Vue 3, TypeScript, TanStack Query, Tailwind CSS |
-| UI Components | shadcn-vue (Reka UI), Lucide Icons |
+| Слой | Технологии |
+|------|------------|
+| Web | Vue 3, TypeScript, TanStack Query, Tailwind CSS |
+| Bot | TypeScript, grammy, Hono |
 | Backend | Supabase (Auth, PostgreSQL, Edge Functions) |
 | Edge Functions | Deno, Kysely ORM |
-| Build | Vite 7, Turborepo, pnpm |
-| Testing | Vitest, Playwright, Storybook |
+| Инфраструктура | Vite, Turborepo, pnpm, Vercel |
+| Тестирование | Vitest, Playwright |
 
-For detailed technical information, see [Architecture](./architecture/README.md).
+## Ссылки проекта
 
-## Project Links
-
-| Resource | URL |
-|----------|-----|
+| Ресурс | URL |
+|--------|-----|
 | Production | https://agents-web-chi.vercel.app |
 | GitHub | https://github.com/spotsccc/agents |
 | Vercel Dashboard | https://vercel.com/spotscccs-projects/agents-web |
 
-## Related Resources
+## Связанные ресурсы
 
-- [CLAUDE.md](../CLAUDE.md) — AI assistant guidelines for this codebase
+- [CLAUDE.md](../CLAUDE.md) — рабочие правила для AI-ассистента в репозитории

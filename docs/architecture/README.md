@@ -1,194 +1,65 @@
-# Architecture Overview
+# Обзор архитектуры
 
-[← Back to Documentation](../README.md)
+[← Назад к документации](../README.md)
 
-## System Architecture
+## Назначение раздела
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │   Vue 3     │  │  TanStack   │  │     shadcn-vue          │  │
-│  │   Router    │  │   Query     │  │   (Reka UI + Tailwind)  │  │
-│  └──────┬──────┘  └──────┬──────┘  └─────────────────────────┘  │
-│         │                │                                       │
-│         └────────┬───────┘                                       │
-│                  │                                               │
-│         ┌────────▼────────┐                                      │
-│         │ Supabase Client │                                      │
-│         └────────┬────────┘                                      │
-└──────────────────┼──────────────────────────────────────────────┘
-                   │ HTTPS
-┌──────────────────┼──────────────────────────────────────────────┐
-│                  │           Supabase                           │
-│  ┌───────────────▼───────────────┐                              │
-│  │         Supabase Auth         │                              │
-│  └───────────────┬───────────────┘                              │
-│                  │                                               │
-│  ┌───────────────▼───────────────┐    ┌─────────────────────┐   │
-│  │       Edge Functions          │───►│    PostgreSQL       │   │
-│  │  (Deno + Kysely)              │    │    + RLS Policies   │   │
-│  │                               │    │                     │   │
-│  │  • create-income-transaction  │    │  Tables:            │   │
-│  │  • create-expense-transaction │    │  • users            │   │
-│  │  • create-transfer-transaction│    │  • wallets          │   │
-│  │  • create-exchange-transaction│    │  • wallet_balances  │   │
-│  └───────────────────────────────┘    │  • transactions     │   │
-│                                       │  • transaction_entries │
-│                                       │  • categories       │   │
-│                                       │  • income_sources   │   │
-│                                       │  • currencies       │   │
-│                                       └─────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+Этот раздел описывает не конкретные реализации, а **архитектурные паттерны** проекта: как разделены ответственности, где проходят границы модулей и как обеспечиваются безопасность, консистентность и масштабируемость.
+
+## Архитектурные слои
+
+```text
+Клиентский слой (Web / Bot)
+  -> Прикладной слой (Use Case handlers в Edge Functions)
+    -> Слой данных (PostgreSQL + RLS)
+      -> Внешние интеграции (LLM, Telegram, Google API и т.д.)
 ```
 
-## Architecture Sections
+Принцип: каждый слой знает только о ближайшем нижнем слое и общается через типизированный контракт.
 
-| Document | Description |
-|----------|-------------|
-| [Frontend](./frontend.md) | Vue 3 application structure, state management, components |
-| [Backend](./backend.md) | Supabase Edge Functions, API design, transaction handling |
-| [Database](./database.md) | PostgreSQL schema, relationships, data model |
+## Ключевые паттерны
 
-## Key Design Decisions
+### 1. Вертикальные срезы (Vertical Slice)
 
-### Monorepo Structure
+Функциональность развивается вертикально: от UI/входной точки до бизнес-правил и записи в БД в рамках одного сценария. Это снижает связанность и упрощает эволюцию продукта.
 
-The project uses Turborepo with pnpm workspaces:
+### 2. Contract-First границы
 
-```
-agents/
-├── apps/
-│   └── web/              # Vue 3 SPA
-└── packages/
-    └── supabase/         # DB types + Edge Functions
-```
+Между слоями используются явные request/response-контракты и типы. Контракт является "точкой правды" для клиента, обработчика и тестов.
 
-**Why monorepo?**
-- Shared TypeScript types between frontend and backend
-- Single source of truth for database schema
-- Coordinated deployments
-- Simplified dependency management
+### 3. Транзакционный use case
 
-### Serverless Backend
+Все критичные изменения состояния выполняются внутри одной транзакции БД. Паттерн гарантирует атомарность: либо сценарий выполнен полностью, либо отменён полностью.
 
-All business logic runs in [Supabase Edge Functions](./backend.md):
+### 4. Shared-Nothing обработчики
 
-**Why Edge Functions over traditional API?**
-- No server management
-- Auto-scaling
-- Built-in authentication integration
-- Direct database access with connection pooling
-- TypeScript/Deno runtime
+Серверные обработчики проектируются как статeless-компоненты: они не полагаются на локальную память процесса и безопасно масштабируются горизонтально.
 
-### Type-Safe Database Access
+### 5. Защита по умолчанию (Secure by Default)
 
-Database queries use [Kysely ORM](./backend.md#kysely-orm):
+Изоляция данных обеспечивается на уровне БД (RLS), а прикладной слой добавляет проверку прав на уровне сценария.
 
-**Why Kysely?**
-- Full TypeScript type inference
-- SQL-like syntax (no magic strings)
-- Works with Deno
-- Compile-time query validation
+## Сквозной поток выполнения
 
-### Component-Driven UI
-
-UI built with [shadcn-vue](./frontend.md#ui-components):
-
-**Why shadcn-vue?**
-- Copy-paste components (no npm dependency)
-- Full customization control
-- Built on Reka UI (accessible primitives)
-- Tailwind CSS integration
-
-## Data Flow
-
-### Transaction Creation Flow
-
-```
-User Action
-    │
-    ▼
-┌─────────────┐
-│ Vue Form    │ ← Vee-Validate + Zod validation
-│ Component   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ TanStack    │ ← Optimistic updates, error handling
-│ Mutation    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Edge        │ ← Authorization, business logic
-│ Function    │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ PostgreSQL  │ ← ACID transaction, RLS
-│ Transaction │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Query       │ ← Cache invalidation, refetch
-│ Invalidation│
-└─────────────┘
+```text
+Пользовательское действие
+  -> Валидация на клиенте
+  -> Вызов серверного сценария
+  -> Аутентификация и авторизация
+  -> Транзакция БД
+  -> Возврат результата
+  -> Инвалидация/обновление клиентского кэша
 ```
 
-### Authentication Flow
+## Нефункциональные качества и паттерны их достижения
 
-```
-┌─────────┐     ┌──────────────┐     ┌─────────────┐
-│ Sign In │────►│ Supabase     │────►│ JWT Token   │
-│ Form    │     │ Auth         │     │ Stored      │
-└─────────┘     └──────────────┘     └──────┬──────┘
-                                            │
-    ┌───────────────────────────────────────┘
-    │
-    ▼
-┌─────────────┐     ┌──────────────┐
-│ Router      │────►│ Protected    │
-│ Guard       │     │ Routes       │
-└─────────────┘     └──────────────┘
-```
+- Консистентность данных: транзакции, блокировки на уровне строк, ограничения в схеме.
+- Безопасность: RLS, проверка владельца ресурса в каждом сценарии, минимально необходимые права.
+- Наблюдаемость: структурированные логи, correlation/request id, единая таксономия ошибок.
+- Эволюционность: миграции вперёд, стабильные контракты, постепенная замена реализаций.
 
-See [Authentication](../features/authentication.md) for details.
+## Как читать раздел
 
-## Security Model
-
-### Row Level Security (RLS)
-
-All database tables have RLS policies:
-
-- Users can only access their own wallets
-- Users can only access their own transactions
-- Users can only access their own categories/sources
-
-### Edge Function Authorization
-
-Each Edge Function:
-
-1. Validates JWT token
-2. Extracts user ID from token
-3. Verifies resource ownership
-4. Executes operation within user scope
-
-See [Backend > Security](./backend.md#security) for implementation details.
-
-## Performance Considerations
-
-| Aspect | Approach |
-|--------|----------|
-| Data fetching | TanStack Query with caching and background refetch |
-| Bundle size | Vite code splitting, tree shaking |
-| Database | Connection pooling, indexed queries |
-| Concurrency | Row-level locks prevent race conditions |
-
-## Related Documentation
-
-- [Project Overview](../overview.md) — What the project does
-- [Features](../features/README.md) — Feature documentation
+- [Архитектура фронтенда](./frontend.md): паттерны организации UI, состояния и маршрутизации.
+- [Архитектура бэкенда](./backend.md): паттерны обработки команд, валидации, авторизации и транзакций.
+- [Архитектура данных](./database.md): паттерны моделирования данных, RLS и эволюции схемы.

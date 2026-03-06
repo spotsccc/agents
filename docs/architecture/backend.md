@@ -1,310 +1,116 @@
-# Backend Architecture
+# Архитектура Backend
 
-[← Frontend](./frontend.md) | [Back to Architecture](./README.md) | [Database →](./database.md)
+[← Фронтенд](./frontend.md) | [Назад к архитектуре](./README.md) | [База данных →](./database.md)
 
-## Overview
+## Роль слоя
 
-The backend consists of Supabase services:
-- **Supabase Auth** — User authentication
-- **PostgreSQL** — Data storage with RLS
-- **Edge Functions** — Business logic (Deno runtime)
+Backend реализует прикладные сценарии, которые изменяют или агрегируют данные. Слой является единственной точкой выполнения бизнес-правил и контролирует консистентность операций.
 
-## Edge Functions
+## Архитектурный стиль
 
-Edge Functions handle all transaction operations. They run on Deno and use Kysely for type-safe database queries.
+### Use Case Handlers
 
-### Function List
+Каждый серверный сценарий оформляется как отдельный handler с единым жизненным циклом обработки запроса.
 
-| Function | Purpose | Documentation |
-|----------|---------|---------------|
-| `create-income-transaction` | Add income to wallet | [Transactions](../features/transactions.md#income) |
-| `create-expense-transaction` | Record expense from wallet | [Transactions](../features/transactions.md#expense) |
-| `create-transfer-transaction` | Transfer between wallets | [Transactions](../features/transactions.md#transfer) |
-| `create-exchange-transaction` | Exchange currencies | [Transactions](../features/transactions.md#exchange) |
+### Stateless + Contract-First
 
-### Function Structure
+Handler не хранит состояние между запросами и принимает только явно типизированный контракт. Это упрощает масштабирование и тестирование.
 
-```
-packages/supabase/functions/
-└── create-income-transaction/
-    ├── deno.json           # Deno imports configuration
-    └── index.ts            # Function entry point
+## Канонический pipeline обработчика
+
+```text
+HTTP request
+  -> parse/validate
+  -> authenticate
+  -> authorize
+  -> execute use case (transactional when needed)
+  -> map domain result to response
+  -> structured logging
 ```
 
-**Required `deno.json`:**
-```json
-{
-  "imports": {
-    "kysely": "npm:kysely",
-    "pg": "npm:pg",
-    "supabase": "npm:@supabase/supabase-js"
-  }
+### Пример каркаса
+
+```ts
+export async function handler(req: Request): Promise<Response> {
+  const input = parseAndValidate(req)
+  const actor = await authenticate(req)
+  authorize(actor, input)
+
+  const result = await executeUseCase(input, actor)
+
+  return toHttpResponse(result)
 }
 ```
 
-### Request/Response Pattern
+## Паттерны бизнес-логики
 
-Each function follows a consistent pattern:
+### Transaction Boundary
 
-```typescript
-// Request validation
-const request = await validateRequest<CreateIncomeTransactionRequest>(req)
+Изменения состояния выполняются в одной транзакции внутри use case. Паттерн устраняет частичные записи и гонки при конкурирующих запросах.
 
-// Authorization check
-const user = await getAuthUser(req)
-if (!user) {
-  return errorResponse('Unauthorized', 401)
-}
+### Concurrency Control
 
-// Business logic in transaction
-const result = await db.transaction().execute(async (trx) => {
-  // 1. Validate ownership
-  // 2. Check constraints
-  // 3. Create records
-  // 4. Update balances
-  return data
-})
+Для конкурентно изменяемых записей используются блокировки и/или ограничения схемы. Принцип: критичная инвариантность защищается в БД, а не только в коде.
 
-// Response
-return jsonResponse(result)
-```
+### Idempotency для команд
 
-### Transaction Safety
+Для повторяемых внешних вызовов (ретраи, повторные webhook'и) вводится idempotency-ключ и стратегия безопасного повторного выполнения.
 
-All financial operations use PostgreSQL transactions with locking:
+## Паттерны безопасности
 
-```typescript
-await db.transaction().execute(async (trx) => {
-  // Lock the balance row to prevent concurrent updates
-  const balance = await trx
-    .selectFrom('wallet_balances')
-    .where('wallet_id', '=', walletId)
-    .where('currency_code', '=', currency)
-    .forUpdate()  // Row-level lock
-    .executeTakeFirst()
+### Аутентификация
 
-  // Check sufficient funds (for expense/transfer)
-  if (balance.balance < amount) {
-    throw new Error('Insufficient funds')
-  }
+Идентичность пользователя извлекается из токена на входе в handler. Неаутентифицированный запрос отклоняется до выполнения бизнес-логики.
 
-  // Update balance atomically
-  await trx
-    .updateTable('wallet_balances')
-    .set({ balance: balance.balance - amount })
-    .where('id', '=', balance.id)
-    .execute()
-})
-```
+### Авторизация по ресурсу
 
-**Guarantees:**
-- Atomic operations (all or nothing)
-- No race conditions with concurrent requests
-- Consistent balance history
+Права проверяются на уровне конкретного use case, а не централизованным "магическим" middleware. Проверка близко к сценарию делает модель доступа явной.
 
-## Kysely ORM
+### Defense in Depth
 
-Kysely provides type-safe SQL queries:
+Проверки в backend дополняют RLS в БД. Даже при ошибке в прикладном коде изоляция данных не должна ломаться.
 
-```typescript
-// Type-safe query building
-const wallet = await db
-  .selectFrom('wallets')
-  .select(['id', 'name', 'user_id'])
-  .where('id', '=', walletId)
-  .where('user_id', '=', userId)
-  .executeTakeFirst()
+## Паттерны интеграций
 
-// Type inference from database schema
-type Wallet = {
-  id: string
-  name: string
-  user_id: string
-}
-```
+### Adapter Layer
 
-**Benefits:**
-- Compile-time query validation
-- Autocomplete for table/column names
-- No raw SQL strings (reduced injection risk)
+Внешние сервисы вызываются через адаптеры/порты с минимальным интерфейсом. Это уменьшает связанность с SDK и упрощает замену провайдера.
 
-## Frontend Integration
+### Timeout + Retry Budget
 
-Edge Functions are called via type-safe wrappers:
+Каждый внешний вызов имеет явный timeout и ограниченный бюджет ретраев. Паттерн защищает систему от каскадных зависаний.
 
-```
-apps/web/src/shared/supabase/edge-functions/
-├── invoke.ts                         # Base invoker
-├── types.ts                          # Shared types
-├── create-income-transaction.ts      # Income wrapper
-├── create-expense-transaction.ts     # Expense wrapper
-├── create-transfer-transaction.ts    # Transfer wrapper
-├── create-exchange-transaction.ts    # Exchange wrapper
-└── index.ts                          # Exports
-```
+## Ошибки и наблюдаемость
 
-**Wrapper example:**
+### Единая таксономия ошибок
 
-```typescript
-// create-income-transaction.ts
-import { invokeEdgeFunction } from './invoke'
-import type { EdgeFunctionResult } from './types'
+Ошибки делятся на категории:
+- validation;
+- authorization;
+- business-rule;
+- integration;
+- internal.
 
-export type CreateIncomeTransactionRequest = {
-  userId: string
-  walletId: string
-  amount: number
-  currency: string
-  sourceId: string
-  description: string
-}
+Это позволяет консистентно маппить ошибки в HTTP-ответы и метрики.
 
-export type CreateIncomeTransactionResponse = {
-  transaction_id: string
-  entry_id: string
-  previous_balance: number
-  new_balance: number
-  currency: string
-  timestamp: string
-}
+### Структурированные логи
 
-export function createIncomeTransaction(
-  params: CreateIncomeTransactionRequest
-): Promise<EdgeFunctionResult<CreateIncomeTransactionResponse>> {
-  return invokeEdgeFunction(CREATE_INCOME_TRANSACTION, params)
-}
-```
+Каждый запрос логируется с correlation id и ключевыми полями сценария (без утечки персональных данных/секретов).
 
-**Usage in component:**
+## Контракты между backend и frontend
 
-```typescript
-import { createIncomeTransaction } from '@/shared/supabase/edge-functions'
+Контракты запроса/ответа должны:
+- храниться рядом с кодом сценария;
+- версионироваться вместе с handler;
+- использоваться для типобезопасных клиентских обёрток.
 
-const result = await createIncomeTransaction({
-  userId: user.id,
-  walletId: wallet.id,
-  amount: 100,
-  currency: 'USD',
-  sourceId: source.id,
-  description: 'Salary'
-})
+Принцип: изменение контракта без миграции клиента считается breaking change.
 
-if (result.success) {
-  console.log('New balance:', result.data.new_balance)
-} else {
-  console.error('Error:', result.error)
-}
-```
+## Чеклист для нового backend-сценария
 
-## Security
-
-### Authentication
-
-Edge Functions validate JWT tokens from Supabase Auth:
-
-```typescript
-import { createClient } from 'supabase'
-
-const authHeader = req.headers.get('Authorization')
-const token = authHeader?.replace('Bearer ', '')
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-const { data: { user }, error } = await supabase.auth.getUser(token)
-
-if (!user) {
-  return new Response('Unauthorized', { status: 401 })
-}
-```
-
-### Authorization
-
-Each function verifies resource ownership:
-
-```typescript
-// Verify wallet belongs to user
-const wallet = await db
-  .selectFrom('wallets')
-  .where('id', '=', request.walletId)
-  .where('user_id', '=', user.id)  // Ownership check
-  .executeTakeFirst()
-
-if (!wallet) {
-  return errorResponse('Wallet not found', 404)
-}
-```
-
-### Input Validation
-
-All inputs are validated before processing:
-
-```typescript
-// Validate positive amount
-if (request.amount <= 0) {
-  return errorResponse('Amount must be positive', 400)
-}
-
-// Validate different wallets for transfer
-if (request.fromWalletId === request.toWalletId) {
-  return errorResponse('Cannot transfer to same wallet', 400)
-}
-
-// Validate different currencies for exchange
-if (request.fromCurrency === request.toCurrency) {
-  return errorResponse('Cannot exchange same currency', 400)
-}
-```
-
-## Error Handling
-
-Edge Functions return structured errors:
-
-```typescript
-// Error response helper
-function errorResponse(message: string, status: number) {
-  return new Response(
-    JSON.stringify({ error: message }),
-    {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    }
-  )
-}
-
-// Usage
-if (balance.balance < amount) {
-  return errorResponse('Insufficient funds', 400)
-}
-```
-
-**Frontend handling:**
-
-```typescript
-const result = await createExpenseTransaction(params)
-
-if (!result.success) {
-  if (result.error === 'Insufficient funds') {
-    showNotification('Not enough money in wallet')
-  } else {
-    showNotification('Transaction failed')
-  }
-}
-```
-
-## Local Development
-
-```bash
-# Start local Supabase (includes Edge Functions)
-pnpm supabase:start
-
-# Serve Edge Functions with hot reload
-pnpm supabase:functions-serve
-
-# Deploy to production
-pnpm supabase:functions-deploy
-```
-
-## Related Documentation
-
-- [Database Schema](./database.md) — Table structure and relationships
-- [Transactions Feature](../features/transactions.md) — Transaction types and flows
-- [Authentication](../features/authentication.md) — Auth system details
+1. Сформулировать входной/выходной контракт.
+2. Добавить parse/validate слой.
+3. Встроить аутентификацию и проверку прав на ресурс.
+4. Определить транзакционную границу и стратегию конкурентного доступа.
+5. Описать idempotency-стратегию (если сценарий вызывается повторно).
+6. Добавить структурированные логи и тесты (happy path + ошибки).

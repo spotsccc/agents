@@ -1,255 +1,105 @@
-# Frontend Architecture
+# Архитектура Frontend
 
-[← Back to Architecture](./README.md) | [Backend →](./backend.md)
+[← Назад к архитектуре](./README.md) | [Бэкенд →](./backend.md)
 
-## Overview
+## Роль слоя
 
-The frontend is a Vue 3 Single Page Application (SPA) built with TypeScript, using modern patterns for state management, routing, and component composition.
+Frontend отвечает за оркестрацию пользовательского сценария: сбор входных данных, локальную валидацию, вызов прикладного API и отображение результата.
 
-## Project Structure
+## Архитектурный стиль
 
-```
-apps/web/src/
-├── app/                    # Application bootstrap
-│   ├── main.ts             # Entry point
-│   ├── app.vue             # Root component
-│   └── router/             # Vue Router configuration
-│
-├── pages/                  # Page modules (route-based)
-│   ├── auth/
-│   │   ├── sign-in/
-│   │   └── sign-up/
-│   ├── wallets/            # Wallets list page
-│   └── wallet/             # Single wallet pages
-│       ├── page.vue
-│       ├── transactions/
-│       └── components/
-│
-├── components/             # Shared components
-│   └── transaction-list-item/
-│
-└── shared/                 # Cross-cutting concerns
-    ├── auth/               # Auth composables
-    ├── supabase/           # Supabase client + edge functions
-    ├── components/ui/      # shadcn-vue components
-    ├── layouts/            # Layout components
-    └── tests/              # Test utilities
-```
+### Route-Driven модульность
 
-### Component Organization
+Маршрут является границей модуля. Внутри модуля:
+- `page`-компонент оркестрирует сценарий;
+- `components` содержат UI конкретной страницы;
+- бизнес-логика выносится в composable/adapter.
 
-| Location | Purpose | Example |
-|----------|---------|---------|
-| `pages/**/page.vue` | Route entry points | `wallet/page.vue` |
-| `pages/**/components/` | Page-specific components | `wallet/components/wallet-balance-display.vue` |
-| `components/` | Shared across pages | `transaction-list-item/` |
-| `shared/components/ui/` | shadcn-vue primitives | `button/`, `input/` |
+### Компоненты по ответственности
 
-## State Management
+- UI-примитивы: переиспользуемые, без доменной логики.
+- Feature-компоненты: знают контекст конкретного сценария.
+- Page-компоненты: собирают экран из feature-компонентов и связывают их с роутером/данными.
 
-### TanStack Vue Query
+## Паттерны состояния
 
-Server state is managed with TanStack Query:
+### Разделение server state и client state
 
-```typescript
-// Fetching data
-const { data: wallets, isLoading } = useQuery({
-  queryKey: ['wallets'],
-  queryFn: () => supabase.from('wallets').select('*')
-})
+- Server state хранится в query-кэше и обновляется через мутации.
+- Client state ограничивается UI-состоянием (открытые панели, фильтры, временные значения формы).
 
-// Mutations with cache invalidation
-const { mutate } = useMutation({
-  mutationFn: createIncomeTransaction,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['wallets'] })
-    queryClient.invalidateQueries({ queryKey: ['transactions'] })
-  }
-})
-```
+### Query Key Convention
 
-**Benefits:**
-- Automatic caching and background refetch
-- Loading and error states
-- Optimistic updates
-- Query invalidation on mutations
+Ключи кэша проектируются как стабильная иерархия: `scope -> entity -> params`. Это делает инвалидацию предсказуемой и снижает риск случайных промахов по кэшу.
 
-### Auth State
+### Mutation + Invalidation
 
-Authentication state uses a dedicated composable:
+После успешной мутации инициируется точечная инвалидация затронутых сегментов кэша. Паттерн избегает полного сброса данных и уменьшает сетевую нагрузку.
 
-```typescript
-// useUser composable
-const { user, isLoading } = useUser()
+## Паттерны форм
 
-// Reactive - updates when auth state changes
-watch(user, (newUser) => {
-  if (newUser) {
-    // User signed in
-  }
-})
-```
+### Schema-First валидация
 
-See [Authentication](../features/authentication.md) for details.
+Схема валидации описывается отдельно от UI-компонентов и используется как единый источник правил:
+- синхронная валидация в браузере;
+- единая типизация для формы и запроса;
+- консистентные ошибки на уровне полей.
 
-## Routing
+### Явные состояния формы
 
-### Route Structure
+Каждая форма должна иметь явные состояния:
+- `idle`;
+- `submitting`;
+- `success`;
+- `error`.
 
-```typescript
-const routes = [
-  // Public routes
-  { path: '/auth/sign-in', component: SignInPage },
-  { path: '/auth/sign-up', component: SignUpPage },
+Это упрощает UX и делает обработку ошибок предсказуемой.
 
-  // Protected routes (require auth)
-  { path: '/wallets', component: WalletsPage },
-  { path: '/wallets/:id', component: WalletPage },
-  { path: '/wallets/:id/transactions', component: WalletTransactionsPage },
-  { path: '/wallets/:id/transactions/create', component: CreateTransactionPage },
+## Паттерны маршрутизации
 
-  // Redirects
-  { path: '/', redirect: '/wallets' },
-  { path: '/:pathMatch(.*)*', redirect: '/wallets' }
-]
-```
+### Guarded Routes
 
-### Navigation Guards
+Доступ к приватным страницам проверяется в guard до рендера страницы. Guard выполняет только проверку доступа и редирект, но не содержит бизнес-логики сценария.
 
-```typescript
-router.beforeEach(async (to) => {
-  const { user } = await getCurrentUser()
+### Layout Composition
 
-  // Redirect unauthenticated users to sign-in
-  if (!user && !to.path.startsWith('/auth')) {
-    return '/auth/sign-in'
-  }
+Общие layout-компоненты (например, shell для авторизованного пользователя) отделены от содержимого страниц. Это снижает дублирование и упрощает изменение навигации.
 
-  // Redirect authenticated users away from auth pages
-  if (user && to.path.startsWith('/auth')) {
-    return '/wallets'
-  }
-})
-```
+## UX-паттерны устойчивости
 
-## UI Components
+### Триада состояния данных
 
-### shadcn-vue
+Для каждого data-driven блока предусмотрены три состояния:
+- `loading`;
+- `empty`;
+- `error`.
 
-UI primitives come from shadcn-vue (built on Reka UI):
+Отсутствие одного из состояний считается архитектурным долгом.
 
-```bash
-# Add new component
-npx shadcn-vue@latest add button
-npx shadcn-vue@latest add dialog
-```
+### Fail-Safe обработка ошибок
 
-Components are copied to `src/shared/components/ui/` for full customization.
+Ошибки сервера отображаются в пользовательской форме (toast/inline), а технические детали остаются в логах и трассировке.
 
-### Component Patterns
+## Тестовые паттерны
 
-**Form Components:**
-```vue
-<template>
-  <form @submit="onSubmit">
-    <FormField v-slot="{ componentField }" name="amount">
-      <FormItem>
-        <FormLabel>Amount</FormLabel>
-        <FormControl>
-          <Input v-bind="componentField" type="number" />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-    <Button type="submit">Submit</Button>
-  </form>
-</template>
-```
+- Компонентные тесты: проверяют контракт UI и пользовательские интеракции.
+- Интеграционные тесты страницы: проверяют сценарий модуля целиком.
+- E2E: проверяют критичные пользовательские потоки на уровне продукта.
 
-**Loading States:**
-```vue
-<template>
-  <TransactionListItem v-if="!isLoading" :transaction="data" />
-  <TransactionListItemSkeleton v-else />
-</template>
-```
+Приоритет тестирования: сначала поведение, потом внутренние детали реализации.
 
-## Form Validation
+## Антипаттерны
 
-Forms use Vee-Validate with Zod schemas:
+- Бизнес-правила внутри UI-примитивов.
+- Прямые вызовы внешнего API из случайных компонентов без общего адаптера.
+- Глобальный сброс кэша вместо целевой инвалидации.
+- Валидация только на уровне UI без формальной схемы.
 
-```typescript
-import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
-import { z } from 'zod'
+## Чеклист изменений Frontend
 
-const schema = z.object({
-  amount: z.number().positive('Amount must be positive'),
-  currency: z.string().min(1, 'Currency is required'),
-  description: z.string().optional()
-}).refine(
-  (data) => data.type !== 'expense' || data.categoryId,
-  { message: 'Category required for expenses', path: ['categoryId'] }
-)
-
-const { handleSubmit, errors } = useForm({
-  validationSchema: toTypedSchema(schema)
-})
-```
-
-**Benefits:**
-- Type-safe validation
-- Conditional validation with `.refine()`
-- Integration with UI components via `FormField`
-
-## Development Commands
-
-```bash
-# Development
-pnpm dev              # Start Vite dev server
-
-# Type checking
-pnpm type-check       # Run vue-tsc
-
-# Testing
-pnpm test:unit        # Run Vitest
-pnpm test:e2e         # Run Playwright
-
-# Code quality
-pnpm lint             # ESLint
-pnpm format           # Prettier
-
-# Build
-pnpm build            # Production build
-
-# Storybook
-pnpm storybook        # Component documentation
-```
-
-## Testing
-
-See [CLAUDE.md](../../CLAUDE.md#unit-testing) for detailed testing guidelines.
-
-**Key patterns:**
-
-```typescript
-import { screen, waitFor } from '@testing-library/vue'
-import { renderWithPlugins } from '@/shared/tests/utils'
-
-it('submits form', async () => {
-  const { user } = renderWithPlugins(MyComponent)
-
-  await user.type(screen.getByLabelText('Amount'), '100')
-  await user.click(screen.getByRole('button', { name: 'Submit' }))
-
-  await waitFor(() => {
-    expect(screen.getByText('Success')).toBeInTheDocument()
-  })
-})
-```
-
-## Related Documentation
-
-- [Backend Architecture](./backend.md) — Edge Functions and API
-- [Database Schema](./database.md) — Data model
-- [Features](../features/README.md) — Feature documentation
+При добавлении нового сценария:
+1. Определить границу route-модуля.
+2. Описать контракт запроса/ответа.
+3. Добавить schema-first валидацию.
+4. Добавить точечную стратегию инвалидации.
+5. Добавить минимум один компонентный и один интеграционный тест.

@@ -1,94 +1,59 @@
-# Project Overview
+# Обзор проекта
 
-[← Back to Documentation](./README.md)
+[← Назад к документации](./README.md)
 
-## What is Wallet Manager?
+## Что такое Agents
 
-Wallet Manager is a personal finance application for tracking multi-currency wallets and transactions. It provides a modern, type-safe solution for managing personal finances with support for multiple currencies, various transaction types, and real-time balance tracking.
+**Agents** — это проект, который развивается как альтернатива **OpenClaw**.
 
-## Problems Solved
+Цель проекта: предоставить управляемую платформу для работы с AI-агентами, где пользователь может описывать задачу естественным языком, а агент выполняет её через инструменты и интеграции с внешними сервисами.
 
-### 1. Multi-Currency Tracking
+## Зачем нужен проект
 
-**Problem:** Traditional finance apps struggle with multiple currencies. Users who deal with different currencies (travelers, freelancers with international clients, crypto holders) need to track balances across various currencies.
+### 1. Альтернатива OpenClaw с фокусом на управляемость
 
-**Solution:** Each wallet can hold multiple currency balances simultaneously. The app tracks each currency separately and supports [currency exchange](./features/transactions.md#exchange) within a single wallet.
+**Проблема:** готовые агентные решения часто сложно адаптировать под конкретные процессы команды и внутренние требования.
 
-### 2. Complex Transaction Types
+**Подход в Agents:** модульная архитектура, явные сценарии и прозрачные точки интеграции, чтобы можно было развивать систему под собственные workflows.
 
-**Problem:** Most apps only support simple income/expense tracking. Real financial scenarios include transfers between accounts, currency exchanges, and need to maintain accurate balance history.
+### 2. Единая точка входа для агентных сценариев
 
-**Solution:** Four distinct [transaction types](./features/transactions.md):
-- **Income** — Money coming in with source tracking
-- **Expense** — Money going out with category classification
-- **Transfer** — Moving money between wallets
-- **Exchange** — Converting between currencies
+**Проблема:** пользовательские сценарии (календарь, задачи, брифинги, дневник) обычно разрознены между разными ботами и сервисами.
 
-### 3. Data Integrity
+**Подход в Agents:** объединение сценариев в одной платформе с общим контекстом пользователя и повторным использованием инфраструктуры.
 
-**Problem:** Financial data must be accurate. Race conditions, partial updates, or system failures can corrupt balance information.
+### 3. Предсказуемость и контроль действий агента
 
-**Solution:** All financial operations use [PostgreSQL transactions](./architecture/backend.md#transaction-safety) with row-level locking. Operations are atomic — they either complete fully or roll back entirely.
+**Проблема:** без подтверждений и журналирования агент может выполнять действия непрозрачно.
 
-### 4. Categorization and Insights
+**Подход в Agents:** подтверждение критичных действий, сохранение контекста и техническая наблюдаемость для эксплуатации в production.
 
-**Problem:** Understanding spending patterns requires proper categorization of transactions.
+## Продуктовые направления
 
-**Solution:** Flexible [category system](./features/transactions.md#categories) for expenses and [income sources](./features/transactions.md#income-sources) for tracking where money comes from.
+Текущее направление развития отражено в бэклоге:
 
-## Key Features
+| Направление | Что покрывает | Документация |
+|-------------|---------------|--------------|
+| Calendar Management | Управление Google Calendar через Telegram-бота, включая голос и LLM-интерпретацию | [Calendar](./backlog/calendar/README.md) |
+| Briefing & Diary | Автоматические брифинги и сбор ответов дневника | [Briefing](./backlog/briefing/README.md) |
+| Task Tracker | Управление задачами и интеграция задач в брифинги | [Task Tracker](./backlog/task-tracker/README.md) |
+| Operations | Наблюдаемость, логирование, UX-полировка бота | [Operations](./backlog/operations/README.md) |
 
-| Feature | Description | Documentation |
-|---------|-------------|---------------|
-| Multi-wallet | Create and manage multiple wallets | [Wallets](./features/wallets.md) |
-| Multi-currency | Track different currencies per wallet | [Wallet Balances](./features/wallets.md#multi-currency-support) |
-| Transaction Types | Income, Expense, Transfer, Exchange | [Transactions](./features/transactions.md) |
-| Categories | Organize expenses by category | [Categories](./features/transactions.md#categories) |
-| Income Sources | Track income origins | [Income Sources](./features/transactions.md#income-sources) |
-| Balance History | Track balance after each transaction | [Transaction Entries](./architecture/database.md#transaction_entries) |
-| Secure Auth | User authentication and data isolation | [Authentication](./features/authentication.md) |
+## Ключевые принципы
 
-## User Flow
+- **Модульность:** новые сценарии добавляются как независимые модули без переписывания платформы целиком.
+- **Интеграции как инструменты:** агент работает через явные tool-интерфейсы к внешним API.
+- **Безопасность данных:** аутентификация, изоляция пользовательских данных и контроль доступа на уровне БД.
+- **Наблюдаемость:** логи, метрики и прозрачный жизненный цикл выполнения сценариев.
 
-```
-┌─────────────────┐
-│   Sign Up/In    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Wallets List   │◄────────────────┐
-└────────┬────────┘                 │
-         │                          │
-         ▼                          │
-┌─────────────────┐                 │
-│ Wallet Details  │                 │
-│ - Balances      │                 │
-│ - Quick Actions │                 │
-│ - Recent Txns   │                 │
-└────────┬────────┘                 │
-         │                          │
-         ▼                          │
-┌─────────────────┐                 │
-│ Create          │                 │
-│ Transaction     │─────────────────┘
-│ - Income        │
-│ - Expense       │
-│ - Transfer      │
-│ - Exchange      │
-└─────────────────┘
-```
+## Для кого проект
 
-## Target Users
+- Команды, которые хотят собственную агентную платформу вместо коробочного решения.
+- Разработчики, которым нужен контроль над интеграциями и поведением агента.
+- Продуктовые команды, автоматизирующие рутинные сценарии вокруг календаря, задач и брифингов.
 
-- **Personal finance enthusiasts** — Track daily expenses and income
-- **Freelancers** — Manage payments in multiple currencies
-- **Travelers** — Track spending across different countries/currencies
-- **Small business owners** — Separate business and personal finances
-- **Crypto holders** — Track crypto alongside fiat currencies
+## Что читать дальше
 
-## Next Steps
-
-- [Architecture Overview](./architecture/README.md) — Understand how the system is built
-- [Features Guide](./features/README.md) — Detailed feature documentation
-- [Database Schema](./architecture/database.md) — Data model reference
+- [Архитектура](./architecture/README.md) — как устроена система технически
+- [Функции](./features/README.md) — прикладные разделы web-приложения
+- [Бэклог](./backlog/calendar/README.md) — активные направления развития
