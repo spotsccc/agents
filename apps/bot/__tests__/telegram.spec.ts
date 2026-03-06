@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { app } from "../api/telegram.js";
+import { app } from "../src/index.js";
 
 function req(
   method: string,
