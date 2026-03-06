@@ -1,0 +1,59 @@
+name: Supabase Migrations
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'packages/supabase/migrations/**'
+      - 'packages/supabase/config.toml'
+      - 'packages/supabase/package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/supabase-migrations.yml'
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Apply Supabase migrations
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "Missing required secret SUPABASE_ACCESS_TOKEN"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "Missing required secret SUPABASE_DB_PASSWORD"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_PROJECT_ID" ]; then
+            echo "Missing required secret SUPABASE_PROJECT_ID"
+            exit 1
+          fi
+
+      - name: Link Supabase project
+        run: pnpm supabase:link:ci
+
+      - name: Apply migrations
+        run: |
+          pnpm supabase:db:push:ci

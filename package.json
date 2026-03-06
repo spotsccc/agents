@@ -9,11 +9,19 @@
     "supabase:status": "supabase status",
     "supabase:console": "supabase console",
     "supabase:db:push": "pnpm --filter supabase db:push",
+    "supabase:link:ci": "pnpm --filter supabase link:ci",
+    "supabase:db:push:ci": "pnpm --filter supabase db:push:ci",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "lint:check": "turbo run lint:check",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "test:unit": "turbo run test:unit"
+    "format:check": "turbo run format:check",
+    "type-check": "turbo run type-check",
+    "test:unit": "turbo run test:unit",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "playwright:install": "pnpm --filter web exec playwright install --with-deps",
+    "test:all": "pnpm test:unit && pnpm test:e2e"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

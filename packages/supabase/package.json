@@ -48,6 +48,14 @@
     "gen:types": "supabase gen types typescript --local > scheme/index.ts",
     "functions:serve": "supabase functions serve --env-file .env",
     "functions:deploy": "supabase functions deploy",
-    "db:push": "supabase db push"
+    "db:push": "supabase db push",
+    "link:ci": "supabase link --project-ref \"$SUPABASE_PROJECT_ID\" --password \"$SUPABASE_DB_PASSWORD\"",
+    "db:push:ci": "supabase db push --include-all --yes",
+    "type-check": "for dir in functions/* scheme; do for file in \"$dir\"/*.ts; do [ -f \"$file\" ] || continue; deno check --config \"$dir/deno.json\" \"$file\"; done; done",
+    "lint": "deno lint functions/**/*.ts scheme/**/*.ts",
+    "lint:check": "deno lint functions/**/*.ts scheme/**/*.ts",
+    "format": "deno fmt functions/**/*.ts scheme/**/*.ts",
+    "format:check": "deno fmt --check functions/**/*.ts scheme/**/*.ts",
+    "test:unit": "deno test --permit-no-files"
   }
 }

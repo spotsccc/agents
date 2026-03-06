@@ -10,8 +10,12 @@
     "dev": "BOT_MODE=polling tsx watch src/dev.ts",
     "build": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:check": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,json,md}\""
   },
   "dependencies": {
     "grammy": "^1.35.0",
