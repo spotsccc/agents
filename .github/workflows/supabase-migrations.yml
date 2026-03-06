@@ -54,6 +54,9 @@ jobs:
       - name: Link Supabase project
         run: pnpm supabase:link:ci
 
+      - name: Fetch remote migration history
+        run: pnpm supabase:migration:fetch:ci
+
       - name: Apply migrations
         run: |
           pnpm supabase:db:push:ci

@@ -10,6 +10,7 @@
     "supabase:console": "supabase console",
     "supabase:db:push": "pnpm --filter supabase db:push",
     "supabase:link:ci": "pnpm --filter supabase link:ci",
+    "supabase:migration:fetch:ci": "pnpm --filter supabase migration:fetch:ci",
     "supabase:db:push:ci": "pnpm --filter supabase db:push:ci",
     "build": "turbo run build",
     "dev": "turbo run dev",

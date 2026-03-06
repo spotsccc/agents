@@ -50,6 +50,7 @@
     "functions:deploy": "supabase functions deploy",
     "db:push": "supabase db push",
     "link:ci": "supabase link --project-ref \"$SUPABASE_PROJECT_ID\" --password \"$SUPABASE_DB_PASSWORD\"",
+    "migration:fetch:ci": "supabase migration fetch --linked",
     "db:push:ci": "supabase db push --include-all --yes",
     "type-check": "for dir in functions/* scheme; do for file in \"$dir\"/*.ts; do [ -f \"$file\" ] || continue; deno check --config \"$dir/deno.json\" \"$file\"; done; done",
     "lint": "deno lint functions/**/*.ts scheme/**/*.ts",
