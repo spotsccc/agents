@@ -1,0 +1,32 @@
+{
+  "name": "bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "BOT_MODE=polling tsx watch src/dev.ts",
+    "build": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "grammy": "^1.35.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^22.15.32",
+    "@vitest/eslint-plugin": "^1.2.7",
+    "eslint": "^9.29.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.2.5",
+    "tsx": "^4.19.4",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.33.1",
+    "vitest": "^4.0.17"
+  }
+}
