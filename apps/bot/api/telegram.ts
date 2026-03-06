@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { handle } from "hono/vercel";
 
 const app = new Hono().basePath("/api");
 
@@ -18,5 +17,5 @@ app.all("/telegram", (c) => {
   return c.json({ ok: false, error: "method_not_allowed" }, 405);
 });
 
-export default handle(app);
+export default app;
 export { app };
