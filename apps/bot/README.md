@@ -19,15 +19,15 @@ pnpm --filter bot dev
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `BOT_MODE` | yes | `polling` (local) or `webhook` (production) |
-| `TELEGRAM_BOT_TOKEN` | yes | Telegram Bot API token |
-| `TELEGRAM_WEBHOOK_SECRET` | no | Webhook secret (future) |
-| `SUPABASE_URL` | no | Supabase project URL (future) |
-| `SUPABASE_SERVICE_ROLE_KEY` | no | Supabase service role key (future) |
-| `OPENAI_API_KEY` | no | OpenAI API key (future) |
-| `LOG_LEVEL` | no | Log level |
+| Variable                    | Required | Description                                 |
+| --------------------------- | -------- | ------------------------------------------- |
+| `BOT_MODE`                  | yes      | `polling` (local) or `webhook` (production) |
+| `TELEGRAM_BOT_TOKEN`        | yes      | Telegram Bot API token                      |
+| `TELEGRAM_WEBHOOK_SECRET`   | no       | Webhook secret (future)                     |
+| `SUPABASE_URL`              | no       | Supabase project URL (future)               |
+| `SUPABASE_SERVICE_ROLE_KEY` | no       | Supabase service role key (future)          |
+| `OPENAI_API_KEY`            | no       | OpenAI API key (future)                     |
+| `LOG_LEVEL`                 | no       | Log level                                   |
 
 ## Commands
 
