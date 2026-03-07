@@ -16,7 +16,9 @@ describe('loadEnv', () => {
     process.env.BOT_MODE = 'invalid'
     process.env.TELEGRAM_BOT_TOKEN = 'test-token'
 
-    expect(() => loadEnv()).toThrow('BOT_MODE is required and must be one of: polling, webhook')
+    expect(() => loadEnv()).toThrow(
+      'BOT_MODE is required and must be one of: polling, webhook'
+    )
   })
 
   it('throws when BOT_MODE is not set', () => {
@@ -30,7 +32,9 @@ describe('loadEnv', () => {
     process.env.BOT_MODE = 'polling'
     delete process.env.TELEGRAM_BOT_TOKEN
 
-    expect(() => loadEnv()).toThrow('TELEGRAM_BOT_TOKEN is required but not set')
+    expect(() => loadEnv()).toThrow(
+      'TELEGRAM_BOT_TOKEN is required but not set'
+    )
   })
 
   it('returns typed config for valid env', () => {

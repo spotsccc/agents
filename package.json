@@ -16,7 +16,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "lint:check": "turbo run lint:check",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "turbo run format",
     "format:check": "turbo run format:check",
     "type-check": "turbo run type-check",
     "test:unit": "turbo run test:unit",
@@ -25,6 +25,7 @@
     "test:all": "pnpm test:unit && pnpm test:e2e"
   },
   "devDependencies": {
+    "@agents/prettier-config": "workspace:*",
     "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "turbo": "^2.5.4"

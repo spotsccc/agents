@@ -45,7 +45,7 @@
     "src"
   ],
   "scripts": {
-    "gen:types": "supabase gen types typescript --local > scheme/index.ts",
+    "gen:types": "supabase gen types typescript --local > scheme/index.ts && prettier --write scheme/index.ts",
     "functions:serve": "supabase functions serve --env-file .env",
     "functions:deploy": "supabase functions deploy",
     "db:push": "supabase db push",
@@ -53,10 +53,16 @@
     "migration:fetch:ci": "supabase migration fetch --linked",
     "db:push:ci": "supabase db push --include-all --yes",
     "type-check": "for dir in functions/* scheme; do for file in \"$dir\"/*.ts; do [ -f \"$file\" ] || continue; deno check --config \"$dir/deno.json\" \"$file\"; done; done",
-    "lint": "deno lint functions/**/*.ts scheme/**/*.ts",
-    "lint:check": "deno lint functions/**/*.ts scheme/**/*.ts",
-    "format": "deno fmt functions/**/*.ts scheme/**/*.ts",
-    "format:check": "deno fmt --check functions/**/*.ts scheme/**/*.ts",
+    "lint": "eslint . --fix",
+    "lint:check": "eslint . --max-warnings=0",
+    "format": "prettier --write \"functions/**/*.ts\" \"scheme/**/*.ts\"",
+    "format:check": "prettier --check \"functions/**/*.ts\" \"scheme/**/*.ts\"",
     "test:unit": "deno test --permit-no-files"
+  },
+  "devDependencies": {
+    "@agents/eslint-config": "workspace:*",
+    "@agents/prettier-config": "workspace:*",
+    "eslint": "^9.29.0",
+    "prettier": "^3.2.5"
   }
 }

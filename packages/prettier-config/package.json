@@ -1,0 +1,12 @@
+{
+  "name": "@agents/prettier-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "index.mjs"
+  ],
+  "exports": {
+    ".": "./index.mjs"
+  }
+}

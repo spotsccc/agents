@@ -7,7 +7,10 @@ const VALID_BOT_MODES = ['polling', 'webhook'] as const
 
 export function loadEnv(): BotEnv {
   const botMode = process.env.BOT_MODE
-  if (!botMode || !VALID_BOT_MODES.includes(botMode as (typeof VALID_BOT_MODES)[number])) {
+  if (
+    !botMode ||
+    !VALID_BOT_MODES.includes(botMode as (typeof VALID_BOT_MODES)[number])
+  ) {
     throw new Error(
       `BOT_MODE is required and must be one of: ${VALID_BOT_MODES.join(', ')}. Got: ${botMode ?? '(not set)'}`
     )

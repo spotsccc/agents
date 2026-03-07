@@ -1,0 +1,19 @@
+{
+  "name": "@agents/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "*.json"
+  ],
+  "exports": {
+    "./base.json": "./base.json",
+    "./node.json": "./node.json",
+    "./node-strict.json": "./node-strict.json",
+    "./vue.json": "./vue.json",
+    "./deno.json": "./deno.json"
+  },
+  "dependencies": {
+    "@tsconfig/node22": "^22.0.2",
+    "@vue/tsconfig": "^0.7.0"
+  }
+}
