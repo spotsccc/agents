@@ -1,0 +1,66 @@
+{
+  "name": "supabase",
+  "version": "0.1.1",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./scheme": {
+      "types": "./scheme/index.ts",
+      "import": "./scheme/index.ts"
+    },
+    "./create-income-transaction": {
+      "types": "./functions/create-income-transaction/contract.ts",
+      "import": "./functions/create-income-transaction/contract.ts"
+    },
+    "./create-expense-transaction": {
+      "types": "./functions/create-expense-transaction/contract.ts",
+      "import": "./functions/create-expense-transaction/contract.ts"
+    },
+    "./create-exchange-transaction": {
+      "types": "./functions/create-exchange-transaction/contract.ts",
+      "import": "./functions/create-exchange-transaction/contract.ts"
+    },
+    "./create-transfer-transaction": {
+      "types": "./functions/create-transfer-transaction/contract.ts",
+      "import": "./functions/create-transfer-transaction/contract.ts"
+    },
+    "./setup-wallet-with-balance": {
+      "types": "./functions/setup-wallet-with-balance/contract.ts",
+      "import": "./functions/setup-wallet-with-balance/contract.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "scheme": ["./scheme/index.ts"],
+      "create-income-transaction": ["./functions/create-income-transaction/contract.ts"],
+      "create-expense-transaction": ["./functions/create-expense-transaction/contract.ts"],
+      "create-exchange-transaction": ["./functions/create-exchange-transaction/contract.ts"],
+      "create-transfer-transaction": ["./functions/create-transfer-transaction/contract.ts"],
+      "setup-wallet-with-balance": ["./functions/setup-wallet-with-balance/contract.ts"]
+    }
+  },
+  "files": [
+    "dist",
+    "mod.ts",
+    "src"
+  ],
+  "scripts": {
+    "check": "vp run format:check && vp run lint:check && vp run type-check",
+    "gen:types": "supabase gen types typescript --local > scheme/index.ts && prettier --write scheme/index.ts",
+    "functions:serve": "supabase functions serve --env-file .env",
+    "functions:deploy": "supabase functions deploy",
+    "db:push": "supabase db push",
+    "link:ci": "supabase link --project-ref \"$SUPABASE_PROJECT_ID\" --password \"$SUPABASE_DB_PASSWORD\"",
+    "migration:fetch:ci": "supabase migration fetch --linked",
+    "db:push:ci": "supabase db push --include-all --yes",
+    "type-check": "for dir in functions/* scheme; do for file in \"$dir\"/*.ts; do [ -f \"$file\" ] || continue; deno check --config \"$dir/deno.json\" \"$file\"; done; done",
+    "lint": "deno lint --fix functions scheme",
+    "lint:check": "deno lint functions scheme",
+    "format": "prettier --write \"functions/**/*.ts\" \"scheme/**/*.ts\"",
+    "format:check": "prettier --check \"functions/**/*.ts\" \"scheme/**/*.ts\"",
+    "test:unit": "deno test --permit-no-files"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "dev": "BOT_MODE=polling vp exec tsx watch src/dev.ts",
+    "build": "vp build",
+    "lint": "vp lint . --fix",
+    "lint:check": "vp lint .",
+    "setup:webhook": "vp exec tsx scripts/setup-webhook.ts",
+    "test:unit": "vp test",
+    "type-check": "vp check --no-fmt --no-lint",
+    "format": "vp fmt . --write",
+    "format:check": "vp fmt . --check"
+  },
+  "dependencies": {
+    "env-var": "^7.5.0",
+    "grammy": "^1.35.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.32",
+    "tsx": "^4.19.4",
+    "typescript": "~5.9.2",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": "24"
+  }
+}

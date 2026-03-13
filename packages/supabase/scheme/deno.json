@@ -1,0 +1,8 @@
+{
+  "extends": "../deno.json",
+  "imports": {
+    "kysely": "npm:kysely",
+    "pg": "npm:pg",
+    "supabase": "npm:@supabase/supabase-js"
+  }
+}

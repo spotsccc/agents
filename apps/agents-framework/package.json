@@ -1,0 +1,35 @@
+{
+  "name": "agents-framework",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CLI for scaffolding agent operating conventions, backlog workflow, and starter skills.",
+  "bin": {
+    "agents-framework": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./cli": "./dist/cli.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check": "vp check",
+    "test": "vp test",
+    "typecheck": "vp check --no-fmt --no-lint",
+    "prepublishOnly": "vp build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@typescript/native-preview": "7.0.0-dev.20260309.1",
+    "bumpp": "^10.4.1",
+    "typescript": "^5.9.3",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
+  }
+}
